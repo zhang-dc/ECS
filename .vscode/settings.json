@@ -1,0 +1,14 @@
+{
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+    },
+    "eslint.workingDirectories": [
+        "./"
+    ],
+    "eslint.nodePath": "../node_modules",
+    "eslint.format.enable": true,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "i18n-ally.localesPaths": [
+        "l10n/locales"
+    ],
+}
