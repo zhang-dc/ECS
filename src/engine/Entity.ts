@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { Component, ComponentInstance, ComponentType } from './Component';
+import { Stage } from './Stage';
 
 export interface IEntitiy {
     id: string,
@@ -8,6 +9,7 @@ export interface IEntitiy {
 
 export interface EntityProps {
     name: string,
+    world: Stage,
 }
 
 export class Entity implements IEntitiy {
@@ -15,12 +17,24 @@ export class Entity implements IEntitiy {
     name: string;
     components: Component[] = [];
     children: Entity[] = [];
+    /**
+     * entity 的父级
+     */
     parent?: Entity;
+
+    onDestory: () => void;
 
     constructor(props: EntityProps) {
         this.id = randomUUID();
-        const { name } = props;
+        const { name, world } = props;
         this.name = name;
+        world.createEntity(this);
+        this.onDestory = () => {
+            /**
+             * 清除 stage 中的引用
+             */
+            world.removeEntity(this);
+        };
     }
 
     getComponent<T extends ComponentType>(componentType: T): ComponentInstance<T>|undefined {
@@ -46,6 +60,7 @@ export class Entity implements IEntitiy {
     }
 
     destory() {
+        this.onDestory();
         this.children.forEach(e => {
             e.destory();
         });

@@ -11,6 +11,7 @@
         "@typescript-eslint"
     ],
     "rules": {
+        "strictNullChecks": false,
         "quotes": [2, "single"],
         "semi": [2, "always"],
         "@typescript-eslint/strict-boolean-expressions": [

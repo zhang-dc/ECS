@@ -2,12 +2,12 @@ import { randomUUID } from 'crypto';
 import { Entity } from './Entity';
 
 export interface ComponentProps {
-    name: string;
+    name?: string;
 }
 
 export interface IComponent {
     id: string;
-    name: string;
+    name?: string;
     entity?: Entity;
     setEntity: (entity: Entity) => void;
 }
@@ -19,7 +19,7 @@ export type ComponentInstance<T extends ComponentType> = InstanceType<T>;
 
 export class Component implements IComponent {
     id: string;
-    name: string;
+    name?: string;
     entity?: Entity;
 
     constructor(props: ComponentProps) {

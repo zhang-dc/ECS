@@ -12,6 +12,7 @@ export function instanceTaskEntity(props: InstanceTaskEntityProps) {
 
     const entity = new Entity({
         name: DefaultEntityName.Task,
+        world,
     });
 
     const task = new Task(props);
@@ -19,4 +20,6 @@ export function instanceTaskEntity(props: InstanceTaskEntityProps) {
     entity.addComponent(task);
 
     world.addEntity(entity);
+
+    return entity;
 }
