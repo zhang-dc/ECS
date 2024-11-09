@@ -1,4 +1,3 @@
-import { DefaultEntityName } from '../interface/Entity';
 import { RenderConfig } from '../modules/render/RenderConfig';
 import { System, SystemProps } from '../System';
 import { Task } from './Task';
@@ -11,10 +10,10 @@ export class TaskFlow extends System {
 
     constructor(props: SystemProps) {
         super(props);
-        this.start();
+        this.init();
     }
 
-    start() {
+    init() {
         this.task = this.world.findComponent(Task);
         this.task.systemList.forEach((system) => {
             system.system.start();
@@ -31,6 +30,14 @@ export class TaskFlow extends System {
             return;
         }
         this.isRunning = true;
+        this.renderConfig.renderStage.start();
+        this.runLoop();
+    }
+
+    runLoop() {
+        if (!this.isRunning) {
+            return;
+        }
         this.rafId = requestAnimationFrame(() => {
             if (!this.task) {
                 return;
@@ -38,8 +45,8 @@ export class TaskFlow extends System {
             this.task.systemList.forEach((system) => {
                 system.system.update();
             });
+            this.runLoop();
         });
-        this.renderConfig.renderStage.start();
     }
 
     /**

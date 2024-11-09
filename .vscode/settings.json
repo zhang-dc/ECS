@@ -1,6 +1,8 @@
 {
     "editor.codeActionsOnSave": {
-        "source.fixAll": "explicit"
+        "source.fixAll": "always",
+        "source.fixAll.eslint": "always",
+        "source.fixAll.ts": "always",
     },
     "eslint.workingDirectories": [
         "./"

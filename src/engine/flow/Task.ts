@@ -1,5 +1,5 @@
 import { System } from '../System';
-import { Component, ComponentProps } from '../Component';
+import { BaseComponent, ComponentProps } from '../Component';
 
 export interface SystemInfo {
     system: System,
@@ -11,7 +11,7 @@ export interface TaskProps extends ComponentProps {
     systemList: SystemInfo[],
 }
 
-export class Task extends Component {
+export class Task extends BaseComponent {
     systemList: SystemInfo[] = [];
 
     constructor(props: TaskProps) {

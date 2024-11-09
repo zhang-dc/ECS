@@ -1,7 +1,6 @@
-import { Application, Container, DisplayObject, Renderer } from 'pixi.js';
+import { Application, Container, DisplayObject } from 'pixi.js';
 import { System, SystemProps } from '../../System';
 import { instanceRenderConfigEntity } from './RenderEntity';
-import { Entity } from '../../Entity';
 import { RenderComponent } from './RenderComponent';
 import { RenderConfig } from './RenderConfig';
 
@@ -20,12 +19,10 @@ export class RenderSystem extends System {
         const container = new Container();
         const renderStage = new Application({
             view: canvas,
-            width: canvas.width,
-            height: canvas.height,
             resolution: devicePixelRatio,
             autoStart: false,
         });
-        renderStage.stage.addChild(container);
+        renderStage.stage.addChild(container as DisplayObject);
         const renderConfigEntity = instanceRenderConfigEntity({
             world: this.world,
             container,
@@ -39,6 +36,10 @@ export class RenderSystem extends System {
     }
 
     update() {
-
+        console.log('render');
+        const renders = this.world.findComponents(RenderComponent);
+        renders.forEach((render) => {
+            render.updateRenderObject();
+        });
     }
 }

@@ -1,18 +1,19 @@
-import { Application, Container, DisplayObject, Ticker, TickerCallback } from 'pixi.js';
-import { Component, ComponentProps } from '../../Component';
+import { Application, Ticker, TickerCallback } from 'pixi.js';
+import { BaseComponent, ComponentProps } from '../../Component';
 
 export interface RenderComponentProps extends ComponentProps {
     renderStage: Application;
 }
 
-export class RenderComponent extends Component {
-    renderObject?: DisplayObject;
+export class RenderComponent extends BaseComponent {
     renderStage: Application;
     tickers: TickerCallback<Ticker>[] = [];
     /**
      * 标记 render 是否有更新
      */
     dirty = false;
+    updateProps: unknown = {};
+    visible = true;
 
     constructor(props: RenderComponentProps) {
         super(props);
@@ -38,7 +39,7 @@ export class RenderComponent extends Component {
         if (index < 0) {
             return;
         }
-        this.tickers.splice(index, 1);
+        this.tickers = this.tickers.filter(i => i !== ticker);
         this.renderStage.ticker.remove(ticker);
     }
 
@@ -50,8 +51,7 @@ export class RenderComponent extends Component {
         this.renderStage.ticker.addOnce(ticker);
     }
 
-    destroy() {
-        this.renderObject?.destroy();
-        super.destroy();
+    updateRenderObject() {
+        this.dirty = false;
     }
 }

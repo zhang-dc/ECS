@@ -1,5 +1,5 @@
 import { Application, Container } from 'pixi.js';
-import { Component, ComponentProps } from '../../Component';
+import { BaseComponent, ComponentProps } from '../../Component';
 import { DefaultEntityName } from '../../interface/Entity';
 
 export interface RenderConfigProps extends ComponentProps {
@@ -7,7 +7,7 @@ export interface RenderConfigProps extends ComponentProps {
     container: Container;
 }
 
-export class RenderConfig extends Component {
+export class RenderConfig extends BaseComponent {
     renderStage: Application;
     container: Container;
 

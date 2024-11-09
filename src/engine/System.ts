@@ -12,7 +12,7 @@ export abstract class System {
         this.world = world;
     }
 
-    start(): void {}
+    start(): void { }
 
-    update(): void {}
+    update(): void { }
 }

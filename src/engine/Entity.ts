@@ -1,5 +1,5 @@
-import { randomUUID } from 'crypto';
-import { Component, ComponentInstance, ComponentType } from './Component';
+import { v4 as uuidv4 } from 'uuid';
+import { BaseComponent, ComponentInstance, ComponentType } from './Component';
 import { Stage } from './Stage';
 
 export interface IEntitiy {
@@ -15,19 +15,20 @@ export interface EntityProps {
 export class Entity implements IEntitiy {
     id: string;
     name: string;
-    components: Component[] = [];
+    components: BaseComponent[] = [];
     children: Entity[] = [];
     /**
      * entity 的父级
      */
     parent?: Entity;
-
     onDestory: () => void;
+    world: Stage;
 
     constructor(props: EntityProps) {
-        this.id = randomUUID();
+        this.id = uuidv4();
         const { name, world } = props;
         this.name = name;
+        this.world = world;
         world.createEntity(this);
         this.onDestory = () => {
             /**
@@ -42,12 +43,14 @@ export class Entity implements IEntitiy {
     }
 
     addComponent<T extends ComponentType>(component: ComponentInstance<T>) {
-        this.components.push(component as Component);
+        this.components.push(component as BaseComponent);
         component.setEntity(this);
+        this.world.addComponent(component);
     }
 
-    removeComponent(component: Component) {
+    removeComponent(component: BaseComponent) {
         this.components = this.components.filter((c) => c !== component);
+        this.world.removeComponent(component);
     }
 
     addChild(entity: Entity) {
@@ -66,6 +69,8 @@ export class Entity implements IEntitiy {
         });
         this.components.forEach(c => {
             c.entity = undefined;
+            this.removeComponent(c);
+
         });
         this.parent?.removeChild(this);
         this.parent = undefined;

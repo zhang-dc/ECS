@@ -1,5 +1,5 @@
-import { randomUUID } from 'crypto';
 import { Entity } from './Entity';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface ComponentProps {
     name?: string;
@@ -17,13 +17,13 @@ export type ComponentType = new (props: any) => IComponent;
 
 export type ComponentInstance<T extends ComponentType> = InstanceType<T>;
 
-export class Component implements IComponent {
+export class BaseComponent implements IComponent {
     id: string;
     name?: string;
     entity?: Entity;
 
     constructor(props: ComponentProps) {
-        this.id = randomUUID();
+        this.id = uuidv4();
         const { name } = props;
         this.name = name;
     }
