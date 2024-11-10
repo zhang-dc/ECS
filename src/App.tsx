@@ -3,6 +3,7 @@ import './App.css';
 import { initScene, initTaskSystemList } from './engine/Scene';
 import { Stage } from './engine/Stage';
 import { TaskFlow } from './engine/flow/TaskFlow';
+import { initMainThemeScene } from './games/scene/mainTheme/scene';
 
 function App() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -13,17 +14,7 @@ function App() {
         const mask = maskRef.current;
         if (!canvas ||!mask) return;
         const world = new Stage();
-        const systemList = initTaskSystemList({
-            world,
-            systemList: [],
-            canvas,
-            mask,
-        });
-        const taskFlow = initScene({
-            world,
-            systemList,
-            name: 'game',
-        });
+        const taskFlow = initMainThemeScene({ world, canvas, mask });
         setTaskFlow(taskFlow);
         console.log('run taskFlow');
         taskFlow.run();

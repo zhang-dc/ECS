@@ -2,7 +2,6 @@
     "editor.codeActionsOnSave": {
         "source.fixAll": "always",
         "source.fixAll.eslint": "always",
-        "source.fixAll.ts": "always",
     },
     "eslint.workingDirectories": [
         "./"
@@ -13,4 +12,5 @@
     "i18n-ally.localesPaths": [
         "l10n/locales"
     ],
+    "typescript.preferences.quoteStyle": "single",
 }
