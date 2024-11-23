@@ -13,4 +13,6 @@
         "l10n/locales"
     ],
     "typescript.preferences.quoteStyle": "single",
+    "typescript.format.semicolons": "insert",
+    "prettier.semi": true,
 }

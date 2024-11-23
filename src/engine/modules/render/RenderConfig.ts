@@ -1,8 +1,8 @@
 import { Application, Container } from 'pixi.js';
-import { BaseComponent, ComponentProps } from '../../Component';
+import { BaseComponent, BaseComponentProps } from '../../Component';
 import { DefaultEntityName } from '../../interface/Entity';
 
-export interface RenderConfigProps extends ComponentProps {
+export interface RenderConfigProps extends BaseComponentProps {
     renderStage: Application;
     container: Container;
 }

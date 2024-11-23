@@ -1,22 +1,27 @@
 import { System, SystemProps } from '../../System';
+import { instanceKeyboardEntity } from './instanceKeyboardEntity';
 import { isKeyboardKey, KeyboardKey } from './Keyboard';
+import { KeyboardComponent } from './KeyboardComponent';
 
 export interface KeyboardSystemProps extends SystemProps {
     mask: HTMLDivElement;
 }
 
 export class KeyboardSystem extends System {
-    keyMap = new Map<KeyboardKey, boolean>();
+    keyboardComp?: KeyboardComponent;
 
     constructor(props: KeyboardSystemProps) {
         super(props);
+        instanceKeyboardEntity({
+            world: this.world,
+        });
         const { mask } = props;
         mask.addEventListener('keydown', this.handleKeyDown);
         mask.addEventListener('keyup', this.handleKeyUp);
     }
 
     start(): void {
-        
+        this.keyboardComp = this.world.findComponent(KeyboardComponent);
     }
 
     handleKeyDown(event: KeyboardEvent) {
@@ -28,10 +33,13 @@ export class KeyboardSystem extends System {
     }
 
     handleKeyboardEvent(event: KeyboardEvent, isDown: boolean) {
+        event.preventDefault();
+        event.stopPropagation();
         const { key } = event;
-        if (!isKeyboardKey(key)) {
+        const keyMap = this.keyboardComp?.keyMap;
+        if (!isKeyboardKey(key) || !keyMap) {
             return;
         }
-        this.keyMap.set(key as KeyboardKey, isDown);
+        keyMap.set(key as KeyboardKey, isDown);
     }
 }

@@ -21,7 +21,10 @@ export function instanceMainThemeBackground(props: InstanceMainThemeBackground) 
     const background = new SpriteRenderer({
         renderStage,
         source: logo512,
-        options: {},
+        options: {
+            width: 100,
+            height: 100,
+        },
     });
     renderStage.stage.addChild(background.renderObject as DisplayObject);
 

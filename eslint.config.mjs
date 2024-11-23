@@ -15,8 +15,9 @@ export default [
     rules: {
       "quotes": ["error", "single"],
       "semi": ["error", "always"],
-      "no-console": "on",
+      "no-console": "error",
       "react/react-in-jsx-scope": "off",
+      "prefer-template": "error",
     }
   }
 ];

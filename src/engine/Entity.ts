@@ -39,7 +39,11 @@ export class Entity implements IEntitiy {
     }
 
     getComponent<T extends ComponentType>(componentType: T): ComponentInstance<T>|undefined {
-        return this.components.find(c => c instanceof componentType) as ComponentInstance<T> ;
+        return this.components.find(c => c instanceof componentType) as ComponentInstance<T>;
+    }
+
+    getComponents<T extends ComponentType>(componentType: T): ComponentInstance<T>[] {
+        return this.components.filter(c => c instanceof componentType) as ComponentInstance<T>[];
     }
 
     addComponent<T extends ComponentType>(component: ComponentInstance<T>) {

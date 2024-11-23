@@ -54,7 +54,15 @@ export class Stage {
         return list[0] as ComponentInstance<T>;
     }
 
-    findComponents<T extends ComponentType>(componentType: T) {
+    findComponents<T extends ComponentType>(componentType: T | T[]) {
+        if (Array.isArray(componentType)) {
+            const list = componentType.reduce((acc: ComponentInstance<T>[], type: T) => {
+                const list = (this.componentListMap.get(type) ?? []) as ComponentInstance<T>[];
+                acc.push(...list);
+                return acc;
+            }, []);
+            return list as ComponentInstance<T>[];
+        }
         const list = this.componentListMap.get(componentType) ?? [];
         return list as ComponentInstance<T>[];
     }

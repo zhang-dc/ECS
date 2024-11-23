@@ -1,7 +1,7 @@
 import { Entity } from './Entity';
 import { v4 as uuidv4 } from 'uuid';
 
-export interface ComponentProps {
+export interface BaseComponentProps {
     name?: string;
 }
 
@@ -22,7 +22,7 @@ export class BaseComponent implements IComponent {
     name?: string;
     entity?: Entity;
 
-    constructor(props: ComponentProps) {
+    constructor(props: BaseComponentProps) {
         this.id = uuidv4();
         const { name } = props;
         this.name = name;

@@ -12,7 +12,12 @@ export class SpriteRenderer extends RenderComponent {
     constructor(props: SpriteRendererProps) {
         super(props);
         const { source, options } = props;
-        this.renderObject = Sprite.from(source, options);
+        console.log('options', options);
+        this.renderObject = Sprite.from(source);
+        this.updateProps = {
+           ...options,
+        };
+        this.dirty = true;
     }
 
     updateRenderObject() {
@@ -26,6 +31,6 @@ export class SpriteRenderer extends RenderComponent {
                 (this.renderObject as any)[key] = value;
             }
         });
-        this.dirty = false;
+        super.updateRenderObject();
     }
 }

@@ -1,12 +1,12 @@
 import { System } from '../System';
-import { BaseComponent, ComponentProps } from '../Component';
+import { BaseComponent, BaseComponentProps } from '../Component';
 
 export interface SystemInfo {
     system: System,
     systemIndex: number,
 }
 
-export interface TaskProps extends ComponentProps {
+export interface TaskProps extends BaseComponentProps {
     name: string,
     systemList: SystemInfo[],
 }

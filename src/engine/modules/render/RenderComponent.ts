@@ -1,7 +1,7 @@
 import { Application, Ticker, TickerCallback } from 'pixi.js';
-import { BaseComponent, ComponentProps } from '../../Component';
+import { BaseComponent, BaseComponentProps } from '../../Component';
 
-export interface RenderComponentProps extends ComponentProps {
+export interface RenderComponentProps extends BaseComponentProps {
     renderStage: Application;
 }
 
@@ -12,7 +12,7 @@ export class RenderComponent extends BaseComponent {
      * 标记 render 是否有更新
      */
     dirty = false;
-    updateProps: unknown = {};
+    updateProps: any = {};
     visible = true;
 
     constructor(props: RenderComponentProps) {
@@ -52,6 +52,7 @@ export class RenderComponent extends BaseComponent {
     }
 
     updateRenderObject() {
+        this.updateProps = {};
         this.dirty = false;
     }
 }
