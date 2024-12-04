@@ -37,6 +37,8 @@ export class LayoutSystem extends System {
                 renderer.updateProps.x = layoutComp.x;
                 renderer.updateProps.y = layoutComp.y;
             });
+            layoutComp.transform.x = layoutComp.x;
+            layoutComp.transform.y = layoutComp.y;
         } else {
             // 更新相对位置
             let { x, y } = layoutComp;
@@ -56,6 +58,8 @@ export class LayoutSystem extends System {
                 renderer.updateProps.x = x;
                 renderer.updateProps.y = y;
             });
+            layoutComp.transform.x = x;
+            layoutComp.transform.y = y;
         }
         children.forEach((entity) => {
             this.updateEntityLayout(entity);

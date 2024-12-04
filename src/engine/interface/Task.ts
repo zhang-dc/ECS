@@ -14,17 +14,19 @@ export enum DefaultSystemName {
 
 export enum DefaultSystemIndex {
     // 基础交互状态 System
-    InteractSystem = -10000,
-    KeyboardSystem,
+    EventSystem = -100000,
     PointerSystem,
+    HitTestSystem,
+    InteractSystem,
+    KeyboardSystem,
 
     // 交互动作 System
     DragSystem,
 
-    // 1 - 9999 为其他游戏内部机制 System
+    // 1 - 99999 为其他游戏内部机制 System
 
     // 排版和渲染 System
-    LayoutSystem = 10000,
+    LayoutSystem = 100000,
     RenderSystem,
     ViewportSystem,
 }
