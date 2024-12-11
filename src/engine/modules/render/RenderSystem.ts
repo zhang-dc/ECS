@@ -2,7 +2,10 @@ import { Application, Container, DisplayObject } from 'pixi.js';
 import { System, SystemProps } from '../../System';
 import { instanceRenderConfigEntity } from './RenderEntity';
 import { RenderConfig } from './RenderConfig';
-import { RenderComType } from './Renderer';
+import { getAllRendersInEntity, RenderComType } from './Renderer';
+import { EventManager } from '../event/Event';
+import { HitTestEvent } from '../hitTest/HitTestEvent';
+import { DefaultEntityName } from '../../interface/Entity';
 
 export interface RenderSystemProps extends SystemProps {
     canvas: HTMLCanvasElement;
@@ -11,6 +14,7 @@ export interface RenderSystemProps extends SystemProps {
 export class RenderSystem extends System {
     canvas: HTMLCanvasElement;
     renderConfig: RenderConfig;
+    eventManager?: EventManager;
 
     constructor(props: RenderSystemProps) {
         super(props);
@@ -34,14 +38,30 @@ export class RenderSystem extends System {
     }
 
     start() {
-
+        this.eventManager = this.world.findComponent(EventManager);
     }
 
     update() {
-        console.log('render');
         const renders = this.world.findComponents(RenderComType);
         renders.forEach((render) => {
             render.updateRenderObject();
         });
+        const hitTestEvents = this.eventManager?.getEvents(HitTestEvent);
+        this.renderConfig.container.removeChildren();
+        const renderers: DisplayObject[] = [];
+        console.log('hitTestEvents', hitTestEvents);
+        hitTestEvents?.forEach((event) => {
+            if (event.entityA.name !== DefaultEntityName.Viewport) {
+                return;
+            }
+            const renders = getAllRendersInEntity(event.entityB).reduce((acc: DisplayObject[], render) => {
+                if (render.renderObject) {
+                    acc.push(render.renderObject);
+                }
+                return acc;
+            }, []);
+            renderers.push(...renders);
+        });
+        renderers.forEach(render => this.renderConfig.container.addChild(render));
     }
 }

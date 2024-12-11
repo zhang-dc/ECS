@@ -2,6 +2,7 @@ import { ComponentInstance, ComponentType } from './Component';
 import { Entity } from './Entity';
 
 type OnComponentAddedFunc<T extends ComponentType> = (type: T, comp: ComponentInstance<T>) => void;
+type OnComponentRemovedFunc<T extends ComponentType> = (type: T, comp: ComponentInstance<T>) => void;
 
 export class Stage {
     /**
@@ -14,6 +15,7 @@ export class Stage {
     fullEntities: Entity[] = [];
     componentListMap: Map<ComponentType, ComponentInstance<ComponentType>[]> = new Map();
     onComponentAddedListenerMap: Map<ComponentType, OnComponentAddedFunc<ComponentType>[]> = new Map();
+    onComponentRemovedListenerMap: Map<ComponentType, OnComponentRemovedFunc<ComponentType>[]> = new Map();
 
     addEntity(entity: Entity) {
         this.entities.push(entity);
@@ -89,6 +91,8 @@ export class Stage {
         const index = list.indexOf(component);
         if (index > -1) {
             list = list.filter(i => i !== component);
+            const listeners = this.onComponentRemovedListenerMap.get(type) ?? [];
+            listeners.forEach(l => l(type, component));
         }
         this.componentListMap.set(type, list);
     }
@@ -98,12 +102,26 @@ export class Stage {
         list.push(listener as OnComponentAddedFunc<ComponentType>);
         this.onComponentAddedListenerMap.set(type, list);
         return () => {
-            const list = this.onComponentAddedListenerMap.get(type)?? [];
+            const list = this.onComponentAddedListenerMap.get(type) ?? [];
             const index = list.indexOf(listener as OnComponentAddedFunc<ComponentType>);
             if (index > -1) {
                 list.splice(index, 1);
             }
             this.onComponentAddedListenerMap.set(type, list);
+        };
+    }
+
+    addComponentRemovedListener<T extends ComponentType>(type: T, listener: OnComponentRemovedFunc<T>) {
+        const list = this.onComponentRemovedListenerMap.get(type)?? [];
+        list.push(listener as OnComponentRemovedFunc<ComponentType>);
+        this.onComponentRemovedListenerMap.set(type, list);
+        return () => {
+            const list = this.onComponentRemovedListenerMap.get(type) ?? [];
+            const index = list.indexOf(listener as OnComponentRemovedFunc<ComponentType>);
+            if (index > -1) {
+                list.splice(index, 1);
+            }
+            this.onComponentRemovedListenerMap.set(type, list);
         };
     }
 }

@@ -45,6 +45,9 @@ export class TaskFlow extends System {
             this.task.systemList.forEach((system) => {
                 system.system.update();
             });
+            this.task.systemList.forEach((system) => {
+                system.system.end();
+            });
             this.runLoop();
         });
     }

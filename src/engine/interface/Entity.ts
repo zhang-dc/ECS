@@ -5,4 +5,5 @@ export enum DefaultEntityName {
     Drag = 'Drag',
     Keyboard = 'Keyboard',
     EventManager = 'EventManager',
+    Viewport = 'Viewport',
 }

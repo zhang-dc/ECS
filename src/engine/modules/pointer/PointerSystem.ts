@@ -1,10 +1,13 @@
 import { System, SystemProps } from '../../System';
 import { instancePointerEntity } from './instancePointerEntity';
+import { PointerButtons } from './Pointer';
 import { PointerComponent } from './PointerComponent';
 
 export interface PointerSystemProps extends SystemProps {
     mask: HTMLDivElement;
 }
+
+export const POINTER_MOVE_DISTANCE = 4;
 
 export class PointerSystem extends System {
     pointerComp?: PointerComponent;
@@ -28,8 +31,8 @@ export class PointerSystem extends System {
         this.pointerComp = this.world.findComponent(PointerComponent);
     }
 
-    update(): void {
-        
+    end(): void {
+        this.updatePointerStatus();
     }
 
     handlePointerDown(event: PointerEvent) {
@@ -48,7 +51,8 @@ export class PointerSystem extends System {
         if (!this.pointerComp) {
             return;
         }
-        this.pointerComp.isPointerDown = event.buttons;
+        this.pointerComp.isPointerDown = event.buttons & event.buttons;
+        this.pointerComp.hasPointerUp = event.buttons;
     }
 
     handlePointerMove(event: PointerEvent) {
@@ -58,8 +62,23 @@ export class PointerSystem extends System {
             return;
         }
         this.pointerComp.isPointerDown = event.buttons;
-        this.pointerComp.isMoving = true;
+        const curX = event.offsetX;
+        const curY = event.offsetY;
+        const distance = Math.sqrt((curX - this.pointerComp.x) ** 2 + (curY - this.pointerComp.y) ** 2);
+        if (distance > POINTER_MOVE_DISTANCE) {
+            this.pointerComp.isMoving = true;
+        } else {
+            this.pointerComp.isMoving = false;
+        }
         this.pointerComp.x = event.offsetX;
         this.pointerComp.y = event.offsetY;
+    }
+
+    updatePointerStatus() {
+        if (!this.pointerComp) {
+            return;
+        }
+        this.pointerComp.hasPointerDown = PointerButtons.NONE;
+        this.pointerComp.hasPointerUp = PointerButtons.NONE;
     }
 }

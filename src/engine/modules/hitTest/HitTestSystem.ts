@@ -7,26 +7,51 @@ import { HitTestComponent, HitTestComponentProps, HitTestType, PointHitTestProps
 import { HitTestEvent } from './HitTestEvent';
 
 export interface HitTestSystemProps extends SystemProps {
-    hitTestGroup: HitTestGroup;
+    hitTestOptions?: {
+        hitTestGroup?: HitTestGroup;
+        extendHitTestGroup: HitTestGroup;
+    }
 }
 
 export class HitTestSystem extends System {
     eventManager?: EventManager;
     /** 可以碰撞检测的组件类型 */
-    hitTestGroup: HitTestGroup;
+    hitTestGroup: HitTestGroup = {
+        [HitTestName.Viewport]: HitTestName.ANY_HIT_TEST_ENTITY,
+    };
     /** 不同 name 的碰撞检测组件 */
     hitTestCompMap: Map<string, HitTestComponent[]> = new Map();
+    /** 所有的碰撞检测组件 */
+    hitTestCompList: HitTestComponent[] = [];
     /** */
     hitTestCache: [] = [];
 
     constructor(props: HitTestSystemProps) {
         super(props);
-        this.hitTestGroup = props.hitTestGroup;
+        const { extendHitTestGroup, hitTestGroup } = props.hitTestOptions ?? {};
+        if (hitTestGroup) {
+            this.hitTestGroup = hitTestGroup;
+        }
+        if (extendHitTestGroup) {
+            this.hitTestGroup = {
+                ...this.hitTestGroup,
+                ...extendHitTestGroup,
+            };
+        }
         this.world.addComponentAddedListener(HitTestComponent, (type, comp) => {
             const { name } = comp.data;
             const list = this.hitTestCompMap.get(name) ?? [];
             list.push(comp);
             this.hitTestCompMap.set(name, list);
+            this.hitTestCompList.push(comp);
+        });
+        this.world.addComponentRemovedListener(HitTestComponent, (type, comp) => {
+            const { name } = comp.data;
+            let list = this.hitTestCompMap.get(name) ?? [];
+            list = list.filter(c => c!== comp);
+            this.hitTestCompMap.set(name, list);
+            const index = list.indexOf(comp);
+            this.hitTestCompList = this.hitTestCompList.filter(c => c!== comp);
         });
     }
 
@@ -35,7 +60,7 @@ export class HitTestSystem extends System {
     }
 
     update(): void {
-        
+        this.checkHitTest();
     }
 
     checkHitTest() {
@@ -46,7 +71,10 @@ export class HitTestSystem extends System {
                 return;
             }
             const listA = this.hitTestCompMap.get(nameA);
-            const listB = this.hitTestCompMap.get(nameB);
+            let listB = this.hitTestCompMap.get(nameB) ?? [];
+            if (nameB === HitTestName.ANY_HIT_TEST_ENTITY) {
+                listB = this.hitTestCompList;
+            }
             if (!listA?.length || !listB?.length) {
                 return;
             }
@@ -100,8 +128,8 @@ export class HitTestSystem extends System {
             });
         }
         if (typeA === HitTestType.Rect && typeB === HitTestType.Rect) {
-            this.pointInRect({
-                options: optionsA,
+            this.rectHitRect({
+                options: optionsA as RectHitTestProps,
                 position: hitTestPosA,
                 entity: entityA,
             }, {

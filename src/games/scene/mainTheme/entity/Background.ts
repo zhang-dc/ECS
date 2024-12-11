@@ -4,6 +4,8 @@ import { SpriteRenderer } from '../../../../engine/modules/render/SpriteRenderer
 import { Stage } from '../../../../engine/Stage';
 import { EntityName } from '../../../interface/Entity';
 import logo512 from '../../../assets/img/logo512.png';
+import { HitTestComponent, HitTestType } from '../../../../engine/modules/hitTest/HitTestComponent';
+import { LayoutComponent } from '../../../../engine/modules/layout/LayoutComponent';
 
 export interface InstanceMainThemeBackground {
     world: Stage,
@@ -25,10 +27,27 @@ export function instanceMainThemeBackground(props: InstanceMainThemeBackground) 
             width: 100,
             height: 100,
         },
+        zIndex: 0,
+        visible: true,
     });
-    renderStage.stage.addChild(background.renderObject as DisplayObject);
+    const hitTestComp = new HitTestComponent({
+        name: EntityName.MainThemeBackground,
+        type: HitTestType.Rect,
+        options: {
+            offset: [0, 0],
+            size: [100, 100],
+        },
+    });
+    const layoutComp = new LayoutComponent({
+        position: {
+            x: 0,
+            y: 0,
+        },
+    });
 
     entity.addComponent(background);
+    entity.addComponent(hitTestComp);
+    entity.addComponent(layoutComp);
 
     return entity;
 }

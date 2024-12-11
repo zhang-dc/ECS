@@ -1,8 +1,10 @@
-import { Application, Ticker, TickerCallback } from 'pixi.js';
+import { Application, DisplayObject, Ticker, TickerCallback } from 'pixi.js';
 import { BaseComponent, BaseComponentProps } from '../../Component';
 
 export interface RenderComponentProps extends BaseComponentProps {
     renderStage: Application;
+    zIndex: number;
+    visible?: boolean;
 }
 
 export class RenderComponent extends BaseComponent {
@@ -14,11 +16,17 @@ export class RenderComponent extends BaseComponent {
     dirty = false;
     updateProps: any = {};
     visible = true;
+    zIndex: number = 0;
+    renderObject?: any;
 
     constructor(props: RenderComponentProps) {
         super(props);
-        const { renderStage } = props;
+        const { renderStage, zIndex, visible } = props;
         this.renderStage = renderStage;
+        this.zIndex = zIndex;
+        if (visible !== undefined) {
+            this.visible = visible;
+        }
     }
 
     /**

@@ -15,4 +15,6 @@ export abstract class System {
     start(): void { }
 
     update(): void { }
+
+    end(): void { }
 }

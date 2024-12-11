@@ -4,6 +4,8 @@ import { TaskFlow } from './flow/TaskFlow';
 import { DefaultEntityName } from './interface/Entity';
 import { DefaultSystemIndex } from './interface/Task';
 import { DragSystem } from './modules/drag/DragSystem';
+import { EventSystem } from './modules/event/EventSystem';
+import { HitTestSystem, HitTestSystemProps } from './modules/hitTest/HitTestSystem';
 import { InteractSystem } from './modules/interact/InteractSystem';
 import { KeyboardSystem } from './modules/keyboard/KeyboardSystem';
 import { LayoutSystem } from './modules/layout/LayoutSystem';
@@ -33,12 +35,25 @@ export interface InitTaskSystemListProps {
     systemList: SystemInfo[];
     canvas: HTMLCanvasElement;
     mask: HTMLDivElement;
+    hitTestOptions?: HitTestSystemProps['hitTestOptions'];
 }
 
 export function initTaskSystemList(props: InitTaskSystemListProps) {
-    const { world, systemList, canvas, mask } = props;
+    const { world, systemList, canvas, mask, hitTestOptions } = props;
     const defaultSystemList: SystemInfo[] = [
         // 基础交互状态 System
+        {
+            system: new EventSystem({ world }),
+            systemIndex: DefaultSystemIndex.EventSystem,
+        },
+        {
+            system: new PointerSystem({ world, mask }),
+            systemIndex: DefaultSystemIndex.PointerSystem,
+        },
+        {
+            system: new HitTestSystem({ world, hitTestOptions }),
+            systemIndex: DefaultSystemIndex.HitTestSystem,
+        },
         {
             system: new InteractSystem({ world }),
             systemIndex: DefaultSystemIndex.InteractSystem,
@@ -46,10 +61,6 @@ export function initTaskSystemList(props: InitTaskSystemListProps) {
         {
             system: new KeyboardSystem({ world, mask }),
             systemIndex: DefaultSystemIndex.KeyboardSystem,
-        },
-        {
-            system: new PointerSystem({ world, mask }),
-            systemIndex: DefaultSystemIndex.PointerSystem,
         },
         // 交互动作 System
         {
@@ -66,7 +77,7 @@ export function initTaskSystemList(props: InitTaskSystemListProps) {
             systemIndex: DefaultSystemIndex.RenderSystem,
         },
         {
-            system: new ViewportSystem({ world }),
+            system: new ViewportSystem({ world, canvas }),
             systemIndex: DefaultSystemIndex.ViewportSystem,
         }
     ];

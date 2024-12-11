@@ -21,3 +21,17 @@ export function getRenderComponents(entity: Entity) {
     }, []);
     return components;
 }
+
+export function getAllRendersInEntity(entity: Entity) {
+    const renderers: RenderComponent[] = [];
+    const entities: Entity[] = [entity];
+    for (let entity of entities) {
+        const { children } = entity;
+        if (children.length) {
+            entities.push(...children);
+        }
+        const renders = getRenderComponents(entity);
+        renderers.push(...renders);
+    }
+    return renderers;
+}
