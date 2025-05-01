@@ -50,7 +50,6 @@ export class HitTestSystem extends System {
             let list = this.hitTestCompMap.get(name) ?? [];
             list = list.filter(c => c!== comp);
             this.hitTestCompMap.set(name, list);
-            const index = list.indexOf(comp);
             this.hitTestCompList = this.hitTestCompList.filter(c => c!== comp);
         });
     }
@@ -71,10 +70,12 @@ export class HitTestSystem extends System {
                 return;
             }
             const listA = this.hitTestCompMap.get(nameA);
+            // console.log(nameA, listA);
             let listB = this.hitTestCompMap.get(nameB) ?? [];
             if (nameB === HitTestName.ANY_HIT_TEST_ENTITY) {
                 listB = this.hitTestCompList;
             }
+            // console.log(nameB, nameB);
             if (!listA?.length || !listB?.length) {
                 return;
             }
@@ -103,8 +104,8 @@ export class HitTestSystem extends System {
         }
         const { offset: offsetA } = optionsA;
         const { offset: offsetB } = optionsB;
-        const posA = entityA.getComponent(LayoutComponent)?.transform;
-        const posB = entityB.getComponent(LayoutComponent)?.transform;
+        const posA = entityA.getComponent(LayoutComponent);
+        const posB = entityB.getComponent(LayoutComponent);
         if (!posA || !posB) {
             return;
         }
@@ -151,15 +152,16 @@ export class HitTestSystem extends System {
     }) {
         const { entity: pointEntity } = point;
         const { entity: rectEntity } = rect;
-        if (point.position.x > rect.position.x && point.position.x < rect.position.x + rect.options.size[0] &&
-            point.position.y > rect.position.y && point.position.y < rect.position.y + rect.options.size[1]) {
+        // console.log(point.position, rect.position);
+        if (point.position.x >= rect.position.x && point.position.x <= rect.position.x + rect.options.size[0] &&
+            point.position.y >= rect.position.y && point.position.y <= rect.position.y + rect.options.size[1]) {
             const event = new HitTestEvent({
                 data: {
                     entityA: pointEntity,
                     entityB: rectEntity,
                 }
             });
-            this.eventManager?.sendEvent(event)
+            this.eventManager?.sendEvent(event);
         }
     }
 
@@ -198,7 +200,7 @@ export class HitTestSystem extends System {
                     entityB: rectBEntity,
                 }
             });
-            this.eventManager?.sendEvent(event)
+            this.eventManager?.sendEvent(event);
         }
     }
 }

@@ -12,7 +12,6 @@ export class SpriteRenderer extends RenderComponent {
     constructor(props: SpriteRendererProps) {
         super(props);
         const { source, options } = props;
-        console.log('options', options);
         this.renderObject = Sprite.from(source);
         this.updateProps = {
            ...options,

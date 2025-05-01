@@ -10,11 +10,12 @@ export interface InstanceViewportEntityProps {
     world: Stage;
     size: [number, number];
     position?: Position;
+    scale?: number;
 }
 
 export function instanceViewportEntity(props: InstanceViewportEntityProps) {
     const {
-        world, size, position,
+        world, size, position, scale = 1,
     } = props;
 
     const entity = new Entity({
@@ -22,7 +23,9 @@ export function instanceViewportEntity(props: InstanceViewportEntityProps) {
         world,
     });
 
-    const viewportComp = new ViewportComponent({});
+    const viewportComp = new ViewportComponent({
+        scale,
+    });
     const hitTestComp = new HitTestComponent({
         type: HitTestType.Rect,
         options: {
@@ -33,7 +36,7 @@ export function instanceViewportEntity(props: InstanceViewportEntityProps) {
     });
     const layoutComp = new LayoutComponent({
         position,
-    })
+    });
 
     entity.addComponent(viewportComp);
     entity.addComponent(hitTestComp);

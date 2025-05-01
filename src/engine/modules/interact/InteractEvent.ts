@@ -12,22 +12,23 @@ export interface InteractEventDataOption {
     [InteractType.DBClick]: PointerInteract,
     [InteractType.PointerDown]: PointerInteract,
     [InteractType.PointerUp]: PointerInteract,
+    [InteractType.PointerMove]: undefined,
     [InteractType.Hover]: undefined,
 }
 
 export interface InteractEventData<T extends InteractType> {
     type: T;
-    option: InteractEventDataOption[T];
+    option?: InteractEventDataOption[T];
 }
 
 export interface InteractEventProps extends EventProps {
     data: InteractEventData<InteractType>;
-    entity: Entity;
+    entity?: Entity;
 }
 
 export class InteractEvent extends BaseEvent {
     data: InteractEventData<InteractType>;
-    entity: Entity;
+    entity?: Entity;
 
     constructor(props: InteractEventProps) {
         super(props);

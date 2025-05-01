@@ -8,10 +8,11 @@ export interface InstanceRenderConfigEntityProps {
     world: Stage,
     renderStage: Application;
     container: Container;
+    canvas: HTMLCanvasElement;
 }
 
 export function instanceRenderConfigEntity(props: InstanceRenderConfigEntityProps) {
-    const { world, renderStage, container } = props;
+    const { world, renderStage, container, canvas } = props;
 
     const entity = new Entity({
         name: DefaultEntityName.RenderConfig,
@@ -21,6 +22,7 @@ export function instanceRenderConfigEntity(props: InstanceRenderConfigEntityProp
     const renderConfig = new RenderConfig({
         renderStage,
         container,
+        canvas,
     });
 
     entity.addComponent(renderConfig);

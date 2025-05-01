@@ -17,6 +17,10 @@ export class Stage {
     onComponentAddedListenerMap: Map<ComponentType, OnComponentAddedFunc<ComponentType>[]> = new Map();
     onComponentRemovedListenerMap: Map<ComponentType, OnComponentRemovedFunc<ComponentType>[]> = new Map();
 
+    constructor() {
+        (window as any).stage = this;
+    }
+
     addEntity(entity: Entity) {
         this.entities.push(entity);
         entity.components.forEach(c => {

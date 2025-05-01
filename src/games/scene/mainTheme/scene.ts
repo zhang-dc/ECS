@@ -1,5 +1,7 @@
+import { HitTestName } from '../../../engine/modules/hitTest/HitTest';
 import { initScene, initTaskSystemList } from '../../../engine/Scene';
 import { Stage } from '../../../engine/Stage';
+import { EntityName } from '../../interface/Entity';
 import { SystemIndex } from '../../interface/Task';
 import { MainThemeSystem } from './MainThemeSystem';
 
@@ -21,6 +23,11 @@ export function initMainThemeScene(props: InitMainThemeSceneProps) {
         ],
         canvas,
         mask,
+        hitTestOptions: {
+            extendHitTestGroup: {
+                [HitTestName.Pointer]: EntityName.MainThemeBackground,
+            }
+        }
     });
     const taskFlow = initScene({
         world,

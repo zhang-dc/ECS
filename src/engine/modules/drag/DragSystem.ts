@@ -4,6 +4,7 @@ import { EventManager } from '../event/Event';
 import { InteractType } from '../interact/Interact';
 import { InteractEvent } from '../interact/InteractEvent';
 import { LayoutComponent } from '../layout/LayoutComponent';
+import { LayoutEvent } from '../layout/LayoutEvent';
 import { PointerComponent } from '../pointer/PointerComponent';
 import { DragEvent, DragStatus } from './DragEvent';
 
@@ -18,17 +19,19 @@ export class DragSystem extends System {
     }
 
     update(): void {
-        this.handleDragging();
-        const pointerDownEvents = this.eventManager?.getEvents(InteractEvent);
-        pointerDownEvents?.forEach(event => {
+        const pointerEvents = this.eventManager?.getEvents(InteractEvent);
+        pointerEvents?.forEach(event => {
             const { entity } = event;
-            if (event.data.type === InteractType.PointerDown) {
+            if (event.data.type === InteractType.PointerDown && entity) {
                 this.handleDragStart(entity);
             }
             if (event.data.type === InteractType.PointerUp) {
                 this.handleDragEnd();
             }
-        })
+            if (event.data.type === InteractType.PointerMove) {
+                this.handleDragging();
+            }
+        });
     }
 
     handleDragStart(entity: Entity): void {
@@ -51,8 +54,14 @@ export class DragSystem extends System {
         if (!layoutComp) {
             return;
         }
-        layoutComp.x = this.pointerComponent.x;
-        layoutComp.y = this.pointerComponent.y;
+        layoutComp.x = layoutComp.x + this.pointerComponent.deltaX;
+        layoutComp.y = layoutComp.y + this.pointerComponent.deltaY;
+        const layoutEvent = new LayoutEvent({
+            data: {
+                entities: [this.dragEntity],
+            },
+        });
+        this.eventManager?.sendEvent(layoutEvent);
     }
 
     handleDragEnd() {

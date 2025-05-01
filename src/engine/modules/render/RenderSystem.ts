@@ -23,16 +23,16 @@ export class RenderSystem extends System {
         const container = new Container();
         const renderStage = new Application({
             view: canvas,
-            resolution: devicePixelRatio,
             autoStart: false,
-            width: Math.floor(canvas.width / devicePixelRatio),
-            height: Math.floor(canvas.height / devicePixelRatio),
+            width: Math.floor(canvas.width),
+            height: Math.floor(canvas.height),
         });
         renderStage.stage.addChild(container as DisplayObject);
         const renderConfigEntity = instanceRenderConfigEntity({
             world: this.world,
             container,
             renderStage,
+            canvas,
         });
         this.renderConfig = renderConfigEntity.getComponent(RenderConfig)!;
     }
@@ -49,7 +49,6 @@ export class RenderSystem extends System {
         const hitTestEvents = this.eventManager?.getEvents(HitTestEvent);
         this.renderConfig.container.removeChildren();
         const renderers: DisplayObject[] = [];
-        console.log('hitTestEvents', hitTestEvents);
         hitTestEvents?.forEach((event) => {
             if (event.entityA.name !== DefaultEntityName.Viewport) {
                 return;

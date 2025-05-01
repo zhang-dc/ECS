@@ -16,7 +16,7 @@ export class LayoutComponent extends BaseComponent {
     } = {
         x: 0,
         y: 0,
-    }
+    };
 
     constructor(props: LayoutComponentProps) {
         super(props);

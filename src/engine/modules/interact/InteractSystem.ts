@@ -1,4 +1,3 @@
-import { EntityName } from '../../../games/interface/Entity';
 import { Entity } from '../../Entity';
 import { DefaultEntityName } from '../../interface/Entity';
 import { System } from '../../System';
@@ -27,15 +26,17 @@ export class InteractSystem extends System {
     }
 
     checkInteract(hitTestEvents: HitTestEvent[]) {
-        hitTestEvents.forEach(({ entityA, entityB }) => {
-            if (entityA.name !== DefaultEntityName.Pointer && entityB.name!== DefaultEntityName.Pointer) {
+        hitTestEvents.forEach((event) => {
+            const { entityA, entityB } = event;
+            if (entityA.name !== DefaultEntityName.Pointer && entityB.name !== DefaultEntityName.Pointer) {
                 return;
             }
             const pointer = entityA.name === DefaultEntityName.Pointer ? entityA : entityB;
             const entity = entityA === pointer ? entityB : entityA;
             this.checkPointerDown(entity);
-            this.checkPointerUp(entity)
+            this.checkPointerUp(entity);
         });
+        this.checkPointerMove();
     }
 
     checkPointerDown(entity: Entity) {
@@ -52,7 +53,7 @@ export class InteractSystem extends System {
 
     checkPointerUp(entity: Entity) {
         [PointerButtons.PRIMARY, PointerButtons.SECONDARY, PointerButtons.AUXILIARY].forEach((pointerButton) => {
-            if (!this.pointerComponent?.hasButtonUp(pointerButton)) {
+            if (!this.pointerComponent?.hasPointerUp) {
                 return;
             }
             this.sendPointerUpEvent({
@@ -60,6 +61,13 @@ export class InteractSystem extends System {
                 pointerButton,
             });
         });
+    }
+
+    checkPointerMove() {
+       if (!this.pointerComponent?.isMoving) {
+           return;
+       }
+       this.sendPointerMoveEvent();
     }
 
     sendPointerDownEvent(option: {
@@ -75,7 +83,7 @@ export class InteractSystem extends System {
                     button: pointerButton,
                 },
             }
-        })
+        });
         this.eventManager?.sendEvent(interactEvent);
     }
 
@@ -92,7 +100,17 @@ export class InteractSystem extends System {
                     button: pointerButton,
                 },
             }
-        })
+        });
+        this.eventManager?.sendEvent(interactEvent);
+    }
+
+    sendPointerMoveEvent() {
+        const interactEvent = new InteractEvent({
+            data: {
+                type: InteractType.PointerMove,
+                option: undefined
+            }
+        });
         this.eventManager?.sendEvent(interactEvent);
     }
 }

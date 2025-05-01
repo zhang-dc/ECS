@@ -47,12 +47,12 @@ export function initTaskSystemList(props: InitTaskSystemListProps) {
             systemIndex: DefaultSystemIndex.EventSystem,
         },
         {
-            system: new PointerSystem({ world, mask }),
-            systemIndex: DefaultSystemIndex.PointerSystem,
-        },
-        {
             system: new HitTestSystem({ world, hitTestOptions }),
             systemIndex: DefaultSystemIndex.HitTestSystem,
+        },
+        {
+            system: new PointerSystem({ world, mask }),
+            systemIndex: DefaultSystemIndex.PointerSystem,
         },
         {
             system: new InteractSystem({ world }),

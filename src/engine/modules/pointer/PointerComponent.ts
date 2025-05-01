@@ -12,7 +12,7 @@ export class PointerComponent extends BaseComponent {
      * 当前帧指针刚抬起
      * MouseEvent.buttons https://developer.mozilla.org/zh-CN/docs/Web/API/MouseEvent/buttons
      */
-    hasPointerUp: number = 0;
+    hasPointerUp = false;
     /**
      * 当前帧指针处于按下状态
      * MouseEvent.buttons https://developer.mozilla.org/zh-CN/docs/Web/API/MouseEvent/buttons
@@ -23,6 +23,10 @@ export class PointerComponent extends BaseComponent {
      */
     x: number = 0;
     y: number = 0;
+    screenX: number = 0;
+    screenY: number = 0;
+    deltaX: number = 0;
+    deltaY: number = 0;
     /**
      * 指针是否在移动
      */
@@ -42,9 +46,5 @@ export class PointerComponent extends BaseComponent {
 
     hasButtonDown(button: PointerButtons) {
         return (this.hasPointerDown & button) === button;
-    }
-
-    hasButtonUp(button: PointerButtons) {
-        return (this.hasPointerUp & button) === button;
     }
 }

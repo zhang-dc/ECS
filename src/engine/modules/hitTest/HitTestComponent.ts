@@ -15,6 +15,7 @@ export interface BaseHitTestProps {
 }
 
 export interface PointHitTestProps extends BaseHitTestProps {
+    offset: [number, number];
 }
 
 export interface RectHitTestProps extends BaseHitTestProps {

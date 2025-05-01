@@ -1,7 +1,10 @@
+import { DefaultEntityName } from '../../interface/Entity';
 import { System, SystemProps } from '../../System';
+import { LayoutComponent } from '../layout/LayoutComponent';
 import { instancePointerEntity } from './instancePointerEntity';
 import { PointerButtons } from './Pointer';
 import { PointerComponent } from './PointerComponent';
+import { ViewportComponent } from '../viewport/ViewportComponent';
 
 export interface PointerSystemProps extends SystemProps {
     mask: HTMLDivElement;
@@ -9,8 +12,20 @@ export interface PointerSystemProps extends SystemProps {
 
 export const POINTER_MOVE_DISTANCE = 4;
 
+enum PointerEventNames {
+    PointerDown = 'pointerdown',
+    PointerUp = 'pointerup',
+    PointerMove = 'pointermove',
+    MouseLeave = 'mouseleave',
+    PointerLeave = 'pointerleave',
+}
+
 export class PointerSystem extends System {
     pointerComp?: PointerComponent;
+    layoutComp?: LayoutComponent;
+    viewportLayoutComp?: LayoutComponent;
+    viewportComp?: ViewportComponent;
+    eventMap = new Map<PointerEventNames, PointerEvent[]>();
 
     constructor(props: PointerSystemProps) {
         super(props);
@@ -22,20 +37,83 @@ export class PointerSystem extends System {
             event.preventDefault();
             event.stopPropagation();
         };
-        mask.addEventListener('pointerdown', this.handlePointerDown);
-        mask.addEventListener('pointerup', this.handlePointerUp);
-        mask.addEventListener('pointermove', this.handlePointerMove);
+        mask.addEventListener(PointerEventNames.PointerDown, this.handlePointerDownEvent);
+        mask.addEventListener(PointerEventNames.PointerUp, this.handlePointerUpEvent);
+        mask.addEventListener(PointerEventNames.PointerMove, this.handlePointerMoveEvent);
+        mask.addEventListener(PointerEventNames.PointerLeave, this.handlePointerLeaveEvent);
     }
 
     start(): void {
-        this.pointerComp = this.world.findComponent(PointerComponent);
+        const pointerEntity = this.world.findEntityByName(DefaultEntityName.Pointer);
+        if (!pointerEntity) {
+            return;
+        }
+        this.pointerComp = pointerEntity.getComponent(PointerComponent);
+        this.layoutComp = pointerEntity.getComponent(LayoutComponent);
+        this.viewportLayoutComp = this.world.findEntityByName(DefaultEntityName.Viewport)?.getComponent(LayoutComponent);
+        this.viewportComp = this.world.findEntityByName(DefaultEntityName.Viewport)?.getComponent(ViewportComponent);
     }
 
     end(): void {
-        this.updatePointerStatus();
+        this.resetPointerStatus();
     }
 
-    handlePointerDown(event: PointerEvent) {
+    update(): void {
+        const pointerDownEvent = this.eventMap.get(PointerEventNames.PointerDown)?.[0];
+        const pointerUpEvent = this.eventMap.get(PointerEventNames.PointerUp)?.[0];
+        const pointerMoveEvent = this.eventMap.get(PointerEventNames.PointerMove)?.[0];
+        const pointerLeaveEvent = this.eventMap.get(PointerEventNames.PointerLeave)?.[0];
+        if (pointerDownEvent) {
+            this.handlePointerDown(pointerDownEvent);
+        }
+        if (pointerUpEvent) {
+            this.handlePointerUp(pointerUpEvent);
+        }
+        if (pointerMoveEvent) {
+            this.handlePointerMove(pointerMoveEvent);
+        }
+        if (pointerLeaveEvent) {
+            this.handlePointerLeave();
+        }
+    }
+
+    handlePointerDownEvent = (event: PointerEvent) => {
+        const currentEvents = this.eventMap.get(PointerEventNames.PointerDown);
+        const newEvents = (currentEvents ?? []);
+        newEvents.push(event);
+        if (!currentEvents) {
+            this.eventMap.set(PointerEventNames.PointerDown, newEvents);
+        }
+    };
+
+    handlePointerUpEvent = (event: PointerEvent) => {
+        const currentEvents = this.eventMap.get(PointerEventNames.PointerUp);
+        const newEvents = (currentEvents ?? []);
+        newEvents.push(event);
+        if (!currentEvents) {
+            this.eventMap.set(PointerEventNames.PointerUp, newEvents);
+        }
+    };
+
+    handlePointerMoveEvent = (event: PointerEvent) => {
+        const currentEvents = this.eventMap.get(PointerEventNames.PointerMove);
+        const newEvents = (currentEvents ?? []);
+        newEvents.push(event);
+        if (!currentEvents) {
+            this.eventMap.set(PointerEventNames.PointerMove, newEvents);
+        }
+    };
+
+    handlePointerLeaveEvent = (event: PointerEvent) => {
+        const currentEvents = this.eventMap.get(PointerEventNames.MouseLeave);
+        const newEvents = (currentEvents ?? []);
+        newEvents.push(event);
+        if (!currentEvents) {
+            this.eventMap.set(PointerEventNames.MouseLeave, newEvents);
+        }
+    };
+
+    handlePointerDown = (event: PointerEvent) => {
         event.preventDefault();
         event.stopPropagation();
         if (!this.pointerComp) {
@@ -43,22 +121,22 @@ export class PointerSystem extends System {
         }
         this.pointerComp.hasPointerDown = event.buttons;
         this.pointerComp.isPointerDown = event.buttons;
-    }
+    };
 
-    handlePointerUp(event: PointerEvent) {
+    handlePointerUp = (event: PointerEvent) => {
         event.preventDefault();
         event.stopPropagation();
         if (!this.pointerComp) {
             return;
         }
         this.pointerComp.isPointerDown = event.buttons & event.buttons;
-        this.pointerComp.hasPointerUp = event.buttons;
-    }
+        this.pointerComp.hasPointerUp = true;
+    };
 
-    handlePointerMove(event: PointerEvent) {
+    handlePointerMove = (event: PointerEvent) => {
         event.preventDefault();
         event.stopPropagation();
-        if (!this.pointerComp) {
+        if (!this.pointerComp || !this.layoutComp) {
             return;
         }
         this.pointerComp.isPointerDown = event.buttons;
@@ -70,15 +148,49 @@ export class PointerSystem extends System {
         } else {
             this.pointerComp.isMoving = false;
         }
-        this.pointerComp.x = event.offsetX;
-        this.pointerComp.y = event.offsetY;
-    }
+        this.pointerComp.screenX = event.offsetX;
+        this.pointerComp.screenY = event.offsetY;
+        if (!this.viewportLayoutComp || !this.viewportComp) {
+            return;
+        }
+        const { scale } = this.viewportComp;
+        const { x, y } = this.viewportLayoutComp;
+        const pointerX = x + event.offsetX * scale;
+        const pointerY = y + event.offsetY * scale;
+        this.pointerComp.deltaX = pointerX - this.pointerComp.x;
+        this.pointerComp.deltaY = pointerY - this.pointerComp.y;
+        this.pointerComp.isMoving = true;
+        this.pointerComp.x = pointerX;
+        this.pointerComp.y = pointerY;
+        this.layoutComp.x = pointerX;
+        this.layoutComp.y = pointerY;
+    };
 
-    updatePointerStatus() {
+    resetPointerStatus() {
         if (!this.pointerComp) {
             return;
         }
         this.pointerComp.hasPointerDown = PointerButtons.NONE;
-        this.pointerComp.hasPointerUp = PointerButtons.NONE;
+        this.pointerComp.hasPointerUp = false;
+        this.pointerComp.deltaX = 0;
+        this.pointerComp.deltaY = 0;
+        this.pointerComp.isMoving = false;
+        [
+            PointerEventNames.PointerDown,
+            PointerEventNames.PointerUp,
+            PointerEventNames.PointerMove,
+            PointerEventNames.MouseLeave,
+        ].forEach((eventName) => {
+            this.eventMap.set(eventName, []); 
+        });
     }
+
+    handlePointerLeave = () => {
+        if (!this.pointerComp) {
+            return;
+        }
+        this.pointerComp.isMoving = false;
+        this.pointerComp.deltaX = 0;
+        this.pointerComp.deltaY = 0;
+    };
 }
