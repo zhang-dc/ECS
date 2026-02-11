@@ -1,7 +1,8 @@
 import { Entity } from '../../Entity';
 import { DefaultEntityName } from '../../interface/Entity';
-import { System } from '../../System';
+import { System, SystemClass } from '../../System';
 import { EventManager } from '../event/Event';
+import { HitTestSystem } from '../hitTest/HitTestSystem';
 import { HitTestEvent } from '../hitTest/HitTestEvent';
 import { PointerButtons } from '../pointer/Pointer';
 import { PointerComponent } from '../pointer/PointerComponent';
@@ -9,6 +10,7 @@ import { InteractType } from './Interact';
 import { InteractEvent } from './InteractEvent';
 
 export class InteractSystem extends System {
+    static after: SystemClass[] = [HitTestSystem];
     pointerComponent?: PointerComponent;
     eventManager?: EventManager;
 

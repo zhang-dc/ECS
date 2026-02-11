@@ -1,14 +1,16 @@
 import { Entity } from '../../Entity';
-import { System } from '../../System';
+import { System, SystemClass } from '../../System';
 import { EventManager } from '../event/Event';
 import { InteractType } from '../interact/Interact';
 import { InteractEvent } from '../interact/InteractEvent';
+import { KeyboardSystem } from '../keyboard/KeyboardSystem';
 import { LayoutComponent } from '../layout/LayoutComponent';
 import { LayoutEvent } from '../layout/LayoutEvent';
 import { PointerComponent } from '../pointer/PointerComponent';
 import { DragEvent, DragStatus } from './DragEvent';
 
 export class DragSystem extends System {
+    static after: SystemClass[] = [KeyboardSystem];
     eventManager?: EventManager;
     dragEntity?: Entity;
     pointerComponent?: PointerComponent;

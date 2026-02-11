@@ -1,11 +1,13 @@
 import { Entity } from '../../Entity';
-import { System } from '../../System';
+import { System, SystemClass } from '../../System';
 import { EventManager } from '../event/Event';
+import { DragSystem } from '../drag/DragSystem';
 import { getRenderComponents } from '../render/Renderer';
 import { LayoutComponent } from './LayoutComponent';
 import { LayoutEvent } from './LayoutEvent';
 
 export class LayoutSystem extends System {
+    static after: SystemClass[] = [DragSystem];
     eventManager?: EventManager;
 
     start(): void {

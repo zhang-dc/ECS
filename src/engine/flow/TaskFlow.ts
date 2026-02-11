@@ -5,7 +5,7 @@ import { Task } from './Task';
 export class TaskFlow extends System {
     task?: Task;
     isRunning = false;
-    rafId: number|undefined;
+    rafId: number | undefined;
     renderConfig?: RenderConfig;
 
     constructor(props: SystemProps) {
@@ -21,10 +21,6 @@ export class TaskFlow extends System {
         this.renderConfig = this.world.findComponent(RenderConfig);
     }
 
-    /**
-     * 启动队列
-     * @returns 
-     */
     run() {
         if (this.isRunning || !this.renderConfig) {
             return;
@@ -48,13 +44,12 @@ export class TaskFlow extends System {
             this.task.systemList.forEach((system) => {
                 system.system.end();
             });
+            // 帧结束时清理变更追踪
+            this.world.clearFrameTracking();
             this.runLoop();
         });
     }
 
-    /**
-     * 暂停队列
-     */
     stop() {
         if (!this.isRunning || !this.renderConfig) {
             return;

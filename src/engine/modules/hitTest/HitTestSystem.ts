@@ -1,7 +1,8 @@
 import { Entity } from '../../Entity';
-import { System, SystemProps } from '../../System';
+import { System, SystemClass, SystemProps } from '../../System';
 import { EventManager } from '../event/Event';
 import { LayoutComponent } from '../layout/LayoutComponent';
+import { PointerSystem } from '../pointer/PointerSystem';
 import { HitTestGroup, HitTestName, Position } from './HitTest';
 import { HitTestComponent, HitTestComponentProps, HitTestType, PointHitTestProps, RectHitTestProps } from './HitTestComponent';
 import { HitTestEvent } from './HitTestEvent';
@@ -14,6 +15,7 @@ export interface HitTestSystemProps extends SystemProps {
 }
 
 export class HitTestSystem extends System {
+    static after: SystemClass[] = [PointerSystem];
     eventManager?: EventManager;
     /** 可以碰撞检测的组件类型 */
     hitTestGroup: HitTestGroup = {
@@ -97,9 +99,10 @@ export class HitTestSystem extends System {
         const { compA, compB } = props;
         const { options: optionsA, type: typeA } = compA.data;
         const { options: optionsB, type: typeB } = compB.data;
-        const entityA = compA.entity;
-        const entityB = compB.entity;
-        if (!entityA ||!entityB) {
+        // 通过 World 反向查找 Component 所属的 Entity
+        const entityA = this.world.getEntityByComponent(compA);
+        const entityB = this.world.getEntityByComponent(compB);
+        if (!entityA || !entityB) {
             return;
         }
         const { offset: offsetA } = optionsA;

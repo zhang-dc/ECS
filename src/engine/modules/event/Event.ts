@@ -28,6 +28,10 @@ export class BaseEvent implements IEvent {
     }
 }
 
+/**
+ * EventManager —— 纯数据组件
+ * 只存储事件队列，行为逻辑由 EventSystem 驱动
+ */
 export class EventManager extends BaseComponent {
     eventListMap: Map<EventType, EventInstance<EventType>[]> = new Map();
 

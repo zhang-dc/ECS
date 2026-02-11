@@ -1,4 +1,5 @@
-import { System, SystemProps } from '../../System';
+import { System, SystemClass, SystemProps } from '../../System';
+import { InteractSystem } from '../interact/InteractSystem';
 import { instanceKeyboardEntity } from './instanceKeyboardEntity';
 import { isKeyboardKey, KeyboardKey } from './Keyboard';
 import { KeyboardComponent } from './KeyboardComponent';
@@ -8,6 +9,7 @@ export interface KeyboardSystemProps extends SystemProps {
 }
 
 export class KeyboardSystem extends System {
+    static after: SystemClass[] = [InteractSystem];
     keyboardComp?: KeyboardComponent;
 
     constructor(props: KeyboardSystemProps) {

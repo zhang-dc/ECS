@@ -1,9 +1,10 @@
 import { Application, Container, DisplayObject } from 'pixi.js';
-import { System, SystemProps } from '../../System';
+import { System, SystemClass, SystemProps } from '../../System';
 import { instanceRenderConfigEntity } from './RenderEntity';
 import { RenderConfig } from './RenderConfig';
 import { getAllRendersInEntity, RenderComType } from './Renderer';
 import { EventManager } from '../event/Event';
+import { LayoutSystem } from '../layout/LayoutSystem';
 import { HitTestEvent } from '../hitTest/HitTestEvent';
 import { DefaultEntityName } from '../../interface/Entity';
 
@@ -12,6 +13,7 @@ export interface RenderSystemProps extends SystemProps {
 }
 
 export class RenderSystem extends System {
+    static after: SystemClass[] = [LayoutSystem];
     canvas: HTMLCanvasElement;
     renderConfig: RenderConfig;
     eventManager?: EventManager;

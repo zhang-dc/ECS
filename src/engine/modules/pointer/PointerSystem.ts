@@ -1,10 +1,11 @@
 import { DefaultEntityName } from '../../interface/Entity';
-import { System, SystemProps } from '../../System';
+import { System, SystemClass, SystemProps } from '../../System';
 import { LayoutComponent } from '../layout/LayoutComponent';
 import { instancePointerEntity } from './instancePointerEntity';
 import { PointerButtons } from './Pointer';
 import { PointerComponent } from './PointerComponent';
 import { ViewportComponent } from '../viewport/ViewportComponent';
+import { EventSystem } from '../event/EventSystem';
 
 export interface PointerSystemProps extends SystemProps {
     mask: HTMLDivElement;
@@ -21,6 +22,7 @@ enum PointerEventNames {
 }
 
 export class PointerSystem extends System {
+    static after: SystemClass[] = [EventSystem];
     pointerComp?: PointerComponent;
     layoutComp?: LayoutComponent;
     viewportLayoutComp?: LayoutComponent;

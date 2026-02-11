@@ -1,8 +1,9 @@
-import { System, SystemProps } from '../../System';
+import { System, SystemClass, SystemProps } from '../../System';
 import { EventManager } from '../event/Event';
 import { HitTestComponent, HitTestComponentProps, HitTestType } from '../hitTest/HitTestComponent';
 import { LayoutComponent } from '../layout/LayoutComponent';
 import { RenderConfig } from '../render/RenderConfig';
+import { RenderSystem } from '../render/RenderSystem';
 import { instanceViewportEntity } from './instanceViewportEntity';
 import { ViewportComponent } from './ViewportComponent';
 import { ViewportEvent } from './ViewportEvent';
@@ -12,6 +13,7 @@ export interface ViewportSystemProps extends SystemProps {
 }
 
 export class ViewportSystem extends System {
+    static after: SystemClass[] = [RenderSystem];
     eventManager?: EventManager;
     viewportComponent: ViewportComponent;
     layoutComponent: LayoutComponent;
