@@ -15,6 +15,7 @@ process.on('unhandledRejection', err => {
 require('../config/env');
 
 const fs = require('fs');
+const path = require('path');
 const chalk = require('react-dev-utils/chalk');
 const webpack = require('webpack');
 const WebpackDevServer = require('webpack-dev-server');
@@ -36,6 +37,7 @@ const react = require(require.resolve('react', { paths: [paths.appPath] }));
 
 const env = getClientEnvironment(paths.publicUrlOrPath.slice(0, -1));
 const useYarn = fs.existsSync(paths.yarnLockFile);
+const usePnpm = fs.existsSync(path.join(paths.appPath, 'pnpm-lock.yaml'));
 const isInteractive = process.stdout.isTTY;
 
 // Warn and crash if required files are missing

@@ -1,0 +1,257 @@
+.property-panel {
+    position: absolute;
+    right: 12px;
+    top: 60px;
+    width: 220px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    background: rgba(30, 30, 30, 0.9);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    user-select: none;
+    pointer-events: auto;
+    color: #ccc;
+    font-size: 12px;
+}
+
+.property-panel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px 16px;
+    color: #666;
+    text-align: center;
+}
+
+.property-panel-empty-icon {
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+.property-panel-hint {
+    font-size: 11px;
+    color: #555;
+    line-height: 1.4;
+}
+
+.property-panel-header {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.property-panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ddd;
+}
+
+.property-section {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.property-section:last-child {
+    border-bottom: none;
+}
+
+.property-section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #777;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+}
+
+.property-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 0;
+}
+
+.property-label {
+    color: #888;
+    min-width: 40px;
+}
+
+.property-value {
+    color: #bbb;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 3px;
+    min-width: 60px;
+    text-align: right;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 11px;
+}
+
+.property-row-buttons {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.property-btn {
+    flex: 1;
+    padding: 5px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    background: transparent;
+    color: #ccc;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.property-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.property-btn.danger {
+    width: 100%;
+    color: #e57373;
+    border-color: rgba(229, 115, 115, 0.2);
+}
+
+.property-btn.danger:hover {
+    background: rgba(229, 115, 115, 0.15);
+    color: #ef9a9a;
+}
+
+.property-input {
+    width: 60px;
+    padding: 2px 6px;
+    border: 1px solid rgba(66, 133, 244, 0.5);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    font-size: 11px;
+    text-align: right;
+    outline: none;
+}
+
+.property-input:focus {
+    border-color: #4285F4;
+    background: rgba(66, 133, 244, 0.1);
+}
+
+.property-input::-webkit-inner-spin-button,
+.property-input::-webkit-outer-spin-button {
+    opacity: 0.5;
+}
+
+.property-suffix {
+    color: #777;
+    font-size: 10px;
+    margin-left: 2px;
+}
+
+.property-color-input {
+    width: 32px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.property-color-input::-webkit-color-swatch-wrapper {
+    padding: 2px;
+}
+
+.property-color-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 2px;
+}
+
+.property-value {
+    cursor: default;
+}
+
+.property-row:hover .property-value {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* 对齐按钮网格布局 */
+.align-buttons {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+}
+
+.align-buttons .property-btn {
+    padding: 4px 2px;
+    font-size: 14px;
+    text-align: center;
+}
+
+.property-btn.small {
+    padding: 4px 6px;
+    font-size: 11px;
+}
+
+/* 范围滑块 */
+.property-range-input {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    margin: 0 6px;
+}
+
+.property-range-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #4285F4;
+    cursor: pointer;
+}
+
+.property-value-small {
+    color: #888;
+    font-size: 10px;
+    min-width: 32px;
+    text-align: right;
+    font-family: 'SF Mono', 'Menlo', monospace;
+}
+
+/* 文字属性按钮组 */
+.property-btn-group {
+    display: flex;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    padding: 1px;
+}
+
+.property-btn-group .property-btn.small {
+    flex: 1;
+    padding: 3px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    border: none;
+    border-radius: 3px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.property-btn-group .property-btn.small.active {
+    background: rgba(66, 133, 244, 0.3);
+    color: #4285F4;
+}

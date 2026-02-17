@@ -1,8 +1,11 @@
 import { Entity } from '../../Entity';
 import { RenderComponent } from './RenderComponent';
+import { ConnectionRenderer } from './ConnectionRenderer';
 import { LineRenderer } from './LineRenderer';
 import { RectRenderer } from './RectRenderer';
-import { SpriteRenderer } from './SpriteRenderer';
+import { RichTextRenderer } from './RichTextRenderer';
+import { ShapeRenderer } from './ShapeRenderer';
+import { TextRenderer } from './TextRenderer';
 
 export const RenderComType = [
     // 基类
@@ -10,7 +13,10 @@ export const RenderComType = [
     // 子类
     LineRenderer,
     RectRenderer,
-    SpriteRenderer,
+    TextRenderer,
+    RichTextRenderer,
+    ShapeRenderer,
+    ConnectionRenderer,
 ];
 
 export function getRenderComponents(entity: Entity) {

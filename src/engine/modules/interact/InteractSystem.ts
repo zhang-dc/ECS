@@ -8,9 +8,16 @@ import { PointerComponent } from '../pointer/PointerComponent';
 import { InteractType } from './Interact';
 import { InteractEvent } from './InteractEvent';
 
+/** 双击检测间隔（毫秒） */
+const DOUBLE_CLICK_INTERVAL = 300;
+
 export class InteractSystem extends System {
     pointerComponent?: PointerComponent;
     eventManager?: EventManager;
+
+    /** 双击检测状态 */
+    private lastClickTime: number = 0;
+    private lastClickEntity: Entity | null = null;
 
     start(): void {
         this.pointerComponent = this.world.findComponent(PointerComponent);
@@ -48,6 +55,23 @@ export class InteractSystem extends System {
                 entity,
                 pointerButton,
             });
+
+            // 双击检测（仅主键）
+            if (pointerButton === PointerButtons.PRIMARY) {
+                const now = Date.now();
+                if (
+                    this.lastClickEntity === entity &&
+                    now - this.lastClickTime < DOUBLE_CLICK_INTERVAL
+                ) {
+                    // 双击
+                    this.sendDBClickEvent({ entity, pointerButton });
+                    this.lastClickTime = 0;
+                    this.lastClickEntity = null;
+                } else {
+                    this.lastClickTime = now;
+                    this.lastClickEntity = entity;
+                }
+            }
         });
     }
 
@@ -109,6 +133,23 @@ export class InteractSystem extends System {
             data: {
                 type: InteractType.PointerMove,
                 option: undefined
+            }
+        });
+        this.eventManager?.sendEvent(interactEvent);
+    }
+
+    sendDBClickEvent(option: {
+        entity: Entity,
+        pointerButton: PointerButtons,
+    }) {
+        const { entity, pointerButton } = option;
+        const interactEvent = new InteractEvent({
+            entity,
+            data: {
+                type: InteractType.DBClick,
+                option: {
+                    button: pointerButton,
+                },
             }
         });
         this.eventManager?.sendEvent(interactEvent);

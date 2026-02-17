@@ -29,6 +29,7 @@
     "eslint-config-react-app": "^7.0.1",
     "eslint-webpack-plugin": "^3.1.1",
     "file-loader": "^6.2.0",
+    "fontkit": "^2.0.4",
     "fs-extra": "^10.0.0",
     "html-webpack-plugin": "^5.5.0",
     "identity-obj-proxy": "^3.0.0",
@@ -48,6 +49,7 @@
     "react-dev-utils": "^12.0.1",
     "react-dom": "^18.2.0",
     "react-refresh": "^0.11.0",
+    "react-router-dom": "^7.13.0",
     "resolve": "^1.20.0",
     "resolve-url-loader": "^4.0.0",
     "sass-loader": "^12.3.0",
@@ -147,6 +149,7 @@
   "devDependencies": {
     "@eslint/js": "^9.15.0",
     "@stylistic/eslint-plugin-ts": "^2.10.1",
+    "@types/fontkit": "^2.0.8",
     "@typescript-eslint/eslint-plugin": "^8.13.0",
     "@typescript-eslint/parser": "^8.13.0",
     "eslint": "^8.57.1",

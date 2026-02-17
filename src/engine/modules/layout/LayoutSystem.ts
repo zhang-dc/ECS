@@ -29,36 +29,39 @@ export class LayoutSystem extends System {
         if (!layoutComp) {
             return;
         }
-        // 更新 stage 上的 entity
-        if (!parent) {
-            const renderers = getRenderComponents(entity);
-            renderers.forEach((renderer) => {
-                renderer.dirty = true;
-                renderer.updateProps.x = layoutComp.x;
-                renderer.updateProps.y = layoutComp.y;
-            });
-        } else {
-            // 更新相对位置
-            let { x, y } = layoutComp;
-            let parentEntity: Entity|undefined = parent;
+
+        // 计算世界坐标（考虑父级层级）
+        let worldX = layoutComp.x;
+        let worldY = layoutComp.y;
+
+        if (parent) {
+            let parentEntity: Entity | undefined = parent;
             while (parentEntity) {
                 const parentLayoutComp = parentEntity.getComponent(LayoutComponent);
-                if (!parentLayoutComp) {
-                    parentEntity = parentEntity.parent;
-                    continue;
+                if (parentLayoutComp) {
+                    worldX += parentLayoutComp.x;
+                    worldY += parentLayoutComp.y;
                 }
-                x += parentLayoutComp.x;
-                y += parentLayoutComp.y;
+                parentEntity = parentEntity.parent;
             }
-            const renderers = getRenderComponents(entity);
-            renderers.forEach((renderer) => {
-                renderer.dirty = true;
-                renderer.updateProps.x = x;
-                renderer.updateProps.y = y;
-            });
         }
-        children.forEach((entity) => {
-            this.updateEntityLayout(entity);
+
+        // 同步到渲染组件
+        const renderers = getRenderComponents(entity);
+        renderers.forEach((renderer) => {
+            renderer.dirty = true;
+            renderer.updateProps.x = worldX;
+            renderer.updateProps.y = worldY;
+            renderer.updateProps.rotation = layoutComp.rotation;
+            renderer.updateProps.scaleX = layoutComp.scaleX;
+            renderer.updateProps.scaleY = layoutComp.scaleY;
+            renderer.updateProps.anchorX = layoutComp.anchorX;
+            renderer.updateProps.anchorY = layoutComp.anchorY;
+        });
+
+        // 递归更新子实体
+        children.forEach((child) => {
+            this.updateEntityLayout(child);
         });
     }
 }

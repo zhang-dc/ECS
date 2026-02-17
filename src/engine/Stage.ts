@@ -4,6 +4,28 @@ import { Entity } from './Entity';
 type OnComponentAddedFunc<T extends ComponentType> = (type: T, comp: ComponentInstance<T>) => void;
 type OnComponentRemovedFunc<T extends ComponentType> = (type: T, comp: ComponentInstance<T>) => void;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StageEventCallback = (...args: any[]) => void;
+
+/** 跨层通信事件名称常量 */
+export const StageEvents = {
+    ENTITY_ADD: 'entity:add',
+    ENTITY_REMOVE: 'entity:remove',
+    SELECTION_CHANGE: 'selection:change',
+    VIEWPORT_CHANGE: 'viewport:change',
+    HISTORY_CHANGE: 'history:change',
+    ENTITY_MOVE: 'entity:move',
+    TOOL_CHANGE: 'tool:change',
+    /** 请求对指定实体启动文本编辑（由 TextEditSystem 监听） */
+    TEXT_EDIT_REQUEST: 'text:edit:request',
+    /** 复制选中实体到剪贴板 */
+    CLIPBOARD_COPY: 'clipboard:copy',
+    /** 粘贴剪贴板内容 */
+    CLIPBOARD_PASTE: 'clipboard:paste',
+    /** 原地复制选中实体 */
+    DUPLICATE: 'duplicate',
+} as const;
+
 export class Stage {
     /**
      * 挂载在当前 stage 上的 entity 合集
@@ -17,9 +39,52 @@ export class Stage {
     onComponentAddedListenerMap: Map<ComponentType, OnComponentAddedFunc<ComponentType>[]> = new Map();
     onComponentRemovedListenerMap: Map<ComponentType, OnComponentRemovedFunc<ComponentType>[]> = new Map();
 
+    /** 全局标志：是否正在 resize 操作中（用于阻止 DragSystem/SelectSystem 干扰） */
+    isResizing: boolean = false;
+    /** 全局标志：是否正在拖拽中（用于 GuideSystem 仅在拖拽时显示对齐线） */
+    isDragging: boolean = false;
+    /** 全局标志：是否正在文本编辑中（用于阻止 SelectSystem/DragSystem 干扰） */
+    isTextEditing: boolean = false;
+
+    /**
+     * 通用事件总线 — 用于 ECS 系统与外部（React UI）之间的跨层通信
+     * 不同于帧级 EventManager（帧内系统间通信），这个是即时通知
+     */
+    private stageListeners: Map<string, Set<StageEventCallback>> = new Map();
+
     constructor() {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).stage = this;
     }
+
+    // ==================== EventBus ====================
+
+    /** 监听事件 */
+    on(event: string, callback: StageEventCallback): () => void {
+        const set = this.stageListeners.get(event) ?? new Set();
+        set.add(callback);
+        this.stageListeners.set(event, set);
+        return () => this.off(event, callback);
+    }
+
+    /** 取消监听 */
+    off(event: string, callback: StageEventCallback): void {
+        const set = this.stageListeners.get(event);
+        if (set) {
+            set.delete(callback);
+        }
+    }
+
+    /** 触发事件 */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    emit(event: string, ...args: any[]): void {
+        const set = this.stageListeners.get(event);
+        if (set) {
+            set.forEach(cb => cb(...args));
+        }
+    }
+
+    // ==================== Entity 管理 ====================
 
     addEntity(entity: Entity) {
         this.entities.push(entity);
@@ -28,6 +93,7 @@ export class Stage {
             const list = this.componentListMap.get(componentType) ?? [];
             this.componentListMap.set(componentType, [...list, c]);
         });
+        this.emit(StageEvents.ENTITY_ADD, entity);
     }
 
     /**
@@ -56,6 +122,7 @@ export class Stage {
         if (fullEntityIndex > -1) {
             this.fullEntities = this.fullEntities.filter(i => i !== entity);
         }
+        this.emit(StageEvents.ENTITY_REMOVE, entity);
     }
 
     findComponent<T extends ComponentType>(componentType: T) {

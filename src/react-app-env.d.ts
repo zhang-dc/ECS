@@ -69,3 +69,18 @@ declare module '*.module.sass' {
   const classes: { readonly [key: string]: string };
   export default classes;
 }
+
+declare module '*.ttf' {
+  const src: string;
+  export default src;
+}
+
+declare module '*.otf' {
+  const src: string;
+  export default src;
+}
+
+declare module '*.wasm' {
+  const src: string;
+  export default src;
+}

@@ -11,11 +11,14 @@ export interface InstanceViewportEntityProps {
     size: [number, number];
     position?: Position;
     scale?: number;
+    minScale?: number;
+    maxScale?: number;
 }
 
 export function instanceViewportEntity(props: InstanceViewportEntityProps) {
     const {
         world, size, position, scale = 1,
+        minScale = 0.1, maxScale = 10,
     } = props;
 
     const entity = new Entity({
@@ -25,6 +28,10 @@ export function instanceViewportEntity(props: InstanceViewportEntityProps) {
 
     const viewportComp = new ViewportComponent({
         scale,
+        offsetX: position?.x ?? 0,
+        offsetY: position?.y ?? 0,
+        minScale,
+        maxScale,
     });
     const hitTestComp = new HitTestComponent({
         type: HitTestType.Rect,

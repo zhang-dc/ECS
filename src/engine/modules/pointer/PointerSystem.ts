@@ -23,7 +23,6 @@ enum PointerEventNames {
 export class PointerSystem extends System {
     pointerComp?: PointerComponent;
     layoutComp?: LayoutComponent;
-    viewportLayoutComp?: LayoutComponent;
     viewportComp?: ViewportComponent;
     eventMap = new Map<PointerEventNames, PointerEvent[]>();
 
@@ -50,7 +49,6 @@ export class PointerSystem extends System {
         }
         this.pointerComp = pointerEntity.getComponent(PointerComponent);
         this.layoutComp = pointerEntity.getComponent(LayoutComponent);
-        this.viewportLayoutComp = this.world.findEntityByName(DefaultEntityName.Viewport)?.getComponent(LayoutComponent);
         this.viewportComp = this.world.findEntityByName(DefaultEntityName.Viewport)?.getComponent(ViewportComponent);
     }
 
@@ -121,6 +119,17 @@ export class PointerSystem extends System {
         }
         this.pointerComp.hasPointerDown = event.buttons;
         this.pointerComp.isPointerDown = event.buttons;
+
+        // 同步指针位置，确保 HitTestSystem 使用正确的坐标
+        this.pointerComp.screenX = event.offsetX;
+        this.pointerComp.screenY = event.offsetY;
+        if (this.viewportComp && this.layoutComp) {
+            const worldPos = this.viewportComp.screenToWorld(event.offsetX, event.offsetY);
+            this.pointerComp.x = worldPos.x;
+            this.pointerComp.y = worldPos.y;
+            this.layoutComp.x = worldPos.x;
+            this.layoutComp.y = worldPos.y;
+        }
     };
 
     handlePointerUp = (event: PointerEvent) => {
@@ -140,23 +149,21 @@ export class PointerSystem extends System {
             return;
         }
         this.pointerComp.isPointerDown = event.buttons;
-        const curX = event.offsetX;
-        const curY = event.offsetY;
-        const distance = Math.sqrt((curX - this.pointerComp.x) ** 2 + (curY - this.pointerComp.y) ** 2);
-        if (distance > POINTER_MOVE_DISTANCE) {
+        this.pointerComp.screenX = event.offsetX;
+        this.pointerComp.screenY = event.offsetY;
+        if (!this.viewportComp) {
+            return;
+        }
+        // 使用视口组件的坐标变换方法将屏幕坐标转换为世界坐标
+        const worldPos = this.viewportComp.screenToWorld(event.offsetX, event.offsetY);
+        const pointerX = worldPos.x;
+        const pointerY = worldPos.y;
+        const distance = Math.sqrt((pointerX - this.pointerComp.x) ** 2 + (pointerY - this.pointerComp.y) ** 2);
+        if (distance > POINTER_MOVE_DISTANCE / this.viewportComp.scale) {
             this.pointerComp.isMoving = true;
         } else {
             this.pointerComp.isMoving = false;
         }
-        this.pointerComp.screenX = event.offsetX;
-        this.pointerComp.screenY = event.offsetY;
-        if (!this.viewportLayoutComp || !this.viewportComp) {
-            return;
-        }
-        const { scale } = this.viewportComp;
-        const { x, y } = this.viewportLayoutComp;
-        const pointerX = x + event.offsetX * scale;
-        const pointerY = y + event.offsetY * scale;
         this.pointerComp.deltaX = pointerX - this.pointerComp.x;
         this.pointerComp.deltaY = pointerY - this.pointerComp.y;
         this.pointerComp.isMoving = true;

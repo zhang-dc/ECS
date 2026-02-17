@@ -9,30 +9,32 @@ export interface KeyboardSystemProps extends SystemProps {
 
 export class KeyboardSystem extends System {
     keyboardComp?: KeyboardComponent;
+    private mask: HTMLDivElement;
 
     constructor(props: KeyboardSystemProps) {
         super(props);
         instanceKeyboardEntity({
             world: this.world,
         });
-        const { mask } = props;
-        mask.addEventListener('keydown', this.handleKeyDown);
-        mask.addEventListener('keyup', this.handleKeyUp);
+        this.mask = props.mask;
+        // 注册键盘事件（在箭头函数属性初始化之后）
+        this.mask.addEventListener('keydown', this.handleKeyDown);
+        this.mask.addEventListener('keyup', this.handleKeyUp);
     }
 
     start(): void {
         this.keyboardComp = this.world.findComponent(KeyboardComponent);
     }
 
-    handleKeyDown(event: KeyboardEvent) {
+    handleKeyDown = (event: KeyboardEvent) => {
         this.handleKeyboardEvent(event, true);
-    }
+    };
 
-    handleKeyUp(event: KeyboardEvent) {
+    handleKeyUp = (event: KeyboardEvent) => {
         this.handleKeyboardEvent(event, false);
-    }
+    };
 
-    handleKeyboardEvent(event: KeyboardEvent, isDown: boolean) {
+    handleKeyboardEvent = (event: KeyboardEvent, isDown: boolean) => {
         event.preventDefault();
         event.stopPropagation();
         const { key } = event;
@@ -41,5 +43,5 @@ export class KeyboardSystem extends System {
             return;
         }
         keyMap.set(key as KeyboardKey, isDown);
-    }
+    };
 }

@@ -3,8 +3,9 @@ import { System, SystemProps } from '../../System';
 import { EventManager } from '../event/Event';
 import { LayoutComponent } from '../layout/LayoutComponent';
 import { HitTestGroup, HitTestName, Position } from './HitTest';
-import { HitTestComponent, HitTestComponentProps, HitTestType, PointHitTestProps, RectHitTestProps } from './HitTestComponent';
+import { HitTestComponent, HitTestType, PointHitTestProps, RectHitTestProps } from './HitTestComponent';
 import { HitTestEvent } from './HitTestEvent';
+import { QuadTree, AABB } from './QuadTree';
 
 export interface HitTestSystemProps extends SystemProps {
     hitTestOptions?: {
@@ -12,6 +13,14 @@ export interface HitTestSystemProps extends SystemProps {
         extendHitTestGroup: HitTestGroup;
     }
 }
+
+/** 四叉树的世界范围（足够大以覆盖无边画布） */
+const WORLD_BOUNDS: AABB = {
+    x: -1000000,
+    y: -1000000,
+    width: 2000000,
+    height: 2000000,
+};
 
 export class HitTestSystem extends System {
     eventManager?: EventManager;
@@ -23,8 +32,8 @@ export class HitTestSystem extends System {
     hitTestCompMap: Map<string, HitTestComponent[]> = new Map();
     /** 所有的碰撞检测组件 */
     hitTestCompList: HitTestComponent[] = [];
-    /** */
-    hitTestCache: [] = [];
+    /** 空间索引四叉树 */
+    quadTree: QuadTree<HitTestComponent>;
 
     constructor(props: HitTestSystemProps) {
         super(props);
@@ -38,6 +47,8 @@ export class HitTestSystem extends System {
                 ...extendHitTestGroup,
             };
         }
+        this.quadTree = new QuadTree<HitTestComponent>(WORLD_BOUNDS);
+
         this.world.addComponentAddedListener(HitTestComponent, (type, comp) => {
             const { name } = comp.data;
             const list = this.hitTestCompMap.get(name) ?? [];
@@ -48,9 +59,9 @@ export class HitTestSystem extends System {
         this.world.addComponentRemovedListener(HitTestComponent, (type, comp) => {
             const { name } = comp.data;
             let list = this.hitTestCompMap.get(name) ?? [];
-            list = list.filter(c => c!== comp);
+            list = list.filter(c => c !== comp);
             this.hitTestCompMap.set(name, list);
-            this.hitTestCompList = this.hitTestCompList.filter(c => c!== comp);
+            this.hitTestCompList = this.hitTestCompList.filter(c => c !== comp);
         });
     }
 
@@ -59,7 +70,60 @@ export class HitTestSystem extends System {
     }
 
     update(): void {
+        this.rebuildQuadTree();
         this.checkHitTest();
+    }
+
+    /** 每帧重建四叉树 */
+    rebuildQuadTree() {
+        this.quadTree.clear();
+        this.hitTestCompList.forEach(comp => {
+            if (!comp.entity) return;
+            const layout = comp.entity.getComponent(LayoutComponent);
+            if (!layout) return;
+
+            const { offset } = comp.data.options;
+            const bounds = this.getCompBounds(comp, layout, offset);
+            if (bounds) {
+                this.quadTree.insert({ bounds, data: comp });
+            }
+        });
+    }
+
+    /** 获取实体的世界坐标（遍历父级链累加局部坐标） */
+    private getWorldXY(entity: Entity, layout: LayoutComponent): { x: number; y: number } {
+        let wx = layout.x;
+        let wy = layout.y;
+        let parent = entity.parent;
+        while (parent) {
+            const pl = parent.getComponent(LayoutComponent);
+            if (pl) {
+                wx += pl.x;
+                wy += pl.y;
+            }
+            parent = parent.parent;
+        }
+        return { x: wx, y: wy };
+    }
+
+    /** 获取碰撞组件的 AABB（使用世界坐标） */
+    getCompBounds(comp: HitTestComponent, layout: LayoutComponent, offset: [number, number]): AABB | null {
+        const { type, options } = comp.data;
+        const entity = comp.entity;
+        if (!entity) return null;
+
+        const worldPos = this.getWorldXY(entity, layout);
+        const x = worldPos.x + offset[0];
+        const y = worldPos.y + offset[1];
+
+        if (type === HitTestType.Point) {
+            return { x, y, width: 0, height: 0 };
+        }
+        if (type === HitTestType.Rect) {
+            const rectOpts = options as RectHitTestProps;
+            return { x, y, width: rectOpts.size[0], height: rectOpts.size[1] };
+        }
+        return null;
     }
 
     checkHitTest() {
@@ -70,24 +134,49 @@ export class HitTestSystem extends System {
                 return;
             }
             const listA = this.hitTestCompMap.get(nameA);
-            // console.log(nameA, listA);
-            let listB = this.hitTestCompMap.get(nameB) ?? [];
-            if (nameB === HitTestName.ANY_HIT_TEST_ENTITY) {
-                listB = this.hitTestCompList;
-            }
-            // console.log(nameB, nameB);
-            if (!listA?.length || !listB?.length) {
+            if (!listA?.length) {
                 return;
             }
+
             listA.forEach(compA => {
-                listB.forEach(compB => {
-                    this.hitTestByType({
-                        compA,
-                        compB,
-                    });
+                if (!compA.entity) return;
+                const layoutA = compA.entity.getComponent(LayoutComponent);
+                if (!layoutA) return;
+
+                const { offset: offsetA } = compA.data.options;
+                const boundsA = this.getCompBounds(compA, layoutA, offsetA);
+                if (!boundsA) return;
+
+                // 使用四叉树查询候选碰撞对象
+                let candidates: HitTestComponent[];
+                if (nameB === HitTestName.ANY_HIT_TEST_ENTITY) {
+                    // 对于 ANY，扩展查询范围
+                    const queryBounds = this.expandBounds(boundsA);
+                    candidates = this.quadTree.query(queryBounds).map(item => item.data);
+                } else {
+                    candidates = this.hitTestCompMap.get(nameB) ?? [];
+                }
+
+                candidates.forEach(compB => {
+                    if (compA === compB) return;
+                    this.hitTestByType({ compA, compB });
                 });
             });
         });
+    }
+
+    /** 扩展查询范围以确保覆盖 */
+    expandBounds(bounds: AABB): AABB {
+        // 对于 Point 类型，给一个最小查询范围
+        if (bounds.width === 0 && bounds.height === 0) {
+            return {
+                x: bounds.x - 1,
+                y: bounds.y - 1,
+                width: 2,
+                height: 2,
+            };
+        }
+        return bounds;
     }
 
     hitTestByType(props: {
@@ -99,23 +188,25 @@ export class HitTestSystem extends System {
         const { options: optionsB, type: typeB } = compB.data;
         const entityA = compA.entity;
         const entityB = compB.entity;
-        if (!entityA ||!entityB) {
+        if (!entityA || !entityB) {
             return;
         }
         const { offset: offsetA } = optionsA;
         const { offset: offsetB } = optionsB;
-        const posA = entityA.getComponent(LayoutComponent);
-        const posB = entityB.getComponent(LayoutComponent);
-        if (!posA || !posB) {
+        const layoutA = entityA.getComponent(LayoutComponent);
+        const layoutB = entityB.getComponent(LayoutComponent);
+        if (!layoutA || !layoutB) {
             return;
         }
+        const worldA = this.getWorldXY(entityA, layoutA);
+        const worldB = this.getWorldXY(entityB, layoutB);
         const hitTestPosA = {
-            x: posA.x + offsetA[0],
-            y: posA.y + offsetA[1],
+            x: worldA.x + offsetA[0],
+            y: worldA.y + offsetA[1],
         };
         const hitTestPosB = {
-            x: posB.x + offsetB[0],
-            y: posB.y + offsetB[1],
+            x: worldB.x + offsetB[0],
+            y: worldB.y + offsetB[1],
         };
         if (typeA === HitTestType.Point && typeB === HitTestType.Rect) {
             this.pointInRect({
@@ -152,7 +243,6 @@ export class HitTestSystem extends System {
     }) {
         const { entity: pointEntity } = point;
         const { entity: rectEntity } = rect;
-        // console.log(point.position, rect.position);
         if (point.position.x >= rect.position.x && point.position.x <= rect.position.x + rect.options.size[0] &&
             point.position.y >= rect.position.y && point.position.y <= rect.position.y + rect.options.size[1]) {
             const event = new HitTestEvent({
@@ -190,10 +280,9 @@ export class HitTestSystem extends System {
         const rectBRight = rectB.position.x + rectB.options.size[0];
         const rectBTop = rectB.position.y;
         const rectBBottom = rectB.position.y + rectB.options.size[1];
-        // 判断是否相交
         const xNotHit = rectBLeft > rectARight || rectALeft > rectBRight;
-        const yNotHIt = rectABottom < rectBTop || rectBBottom < rectATop;
-        if (!(xNotHit || yNotHIt)) {
+        const yNotHit = rectABottom < rectBTop || rectBBottom < rectATop;
+        if (!(xNotHit || yNotHit)) {
             const event = new HitTestEvent({
                 data: {
                     entityA: rectAEntity,

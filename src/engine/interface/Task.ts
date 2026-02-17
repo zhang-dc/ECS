@@ -6,10 +6,18 @@ export enum DefaultSystemName {
     InteractSystem = 'InteractSystem',
     KeyboardSystem = 'KeyboardSystem',
     PointerSystem = 'PointerSystem',
+    SelectSystem = 'SelectSystem',
     DragSystem = 'DragSystem',
     LayoutSystem = 'LayoutSystem',
     RenderSystem = 'RenderSystem',
     ViewportSystem = 'ViewportSystem',
+    SelectionRenderSystem = 'SelectionRenderSystem',
+    ResizeSystem = 'ResizeSystem',
+    GridRenderSystem = 'GridRenderSystem',
+    TextEditSystem = 'TextEditSystem',
+    MindMapCommandSystem = 'MindMapCommandSystem',
+    MindMapLayoutSystem = 'MindMapLayoutSystem',
+    MindMapConnectionSystem = 'MindMapConnectionSystem',
 }
 
 export enum DefaultSystemIndex {
@@ -21,12 +29,24 @@ export enum DefaultSystemIndex {
     KeyboardSystem,
 
     // 交互动作 System
+    ResizeSystem,       // 必须在 SelectSystem 之前，否则点击手柄时选中会被清除
+    SelectSystem,
     DragSystem,
+    HistorySystem,
+    GuideSystem,
+    ToolSystem,
+    TextEditSystem,
+    MindMapCommandSystem,
+    MindMapLayoutSystem,
+    MindMapConnectionSystem,
 
     // 1 - 99999 为其他游戏内部机制 System
 
     // 排版和渲染 System
-    LayoutSystem = 100000,
+    LayerSystem = 100000,
+    LayoutSystem,
     RenderSystem,
+    SelectionRenderSystem,
+    GridRenderSystem,
     ViewportSystem,
 }

@@ -4,6 +4,7 @@ export enum KeyboardKey {
     Enter = 'Enter',
     Shift = 'Shift',
     Control = 'Control',
+    Meta = 'Meta',
     Alt = 'Alt',
     Pause = 'Pause',
     CapsLock = 'CapsLock',

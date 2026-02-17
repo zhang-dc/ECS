@@ -1,0 +1,91 @@
+.mindmap-panel {
+    position: absolute;
+    right: 12px;
+    bottom: 60px;
+    width: 200px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+    padding: 12px;
+    font-size: 13px;
+    color: #333;
+    z-index: 100;
+}
+
+.mindmap-panel-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #eee;
+}
+
+.mindmap-panel-info {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+}
+
+.mindmap-info-label {
+    color: #888;
+}
+
+.mindmap-info-value {
+    font-weight: 500;
+}
+
+.mindmap-panel-actions {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mindmap-action-btn {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    color: #333;
+    transition: all 0.15s;
+}
+
+.mindmap-action-btn:hover {
+    background: #f0f0f0;
+    border-color: #bbb;
+}
+
+.mindmap-action-btn.danger {
+    color: #e74c3c;
+    border-color: #f5c6cb;
+}
+
+.mindmap-action-btn.danger:hover {
+    background: #fdf0f0;
+    border-color: #e74c3c;
+}
+
+.mindmap-panel-shortcuts {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+}
+
+.shortcut-item {
+    font-size: 11px;
+    color: #999;
+    padding: 2px 0;
+}
+
+.shortcut-item kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-family: monospace;
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    margin-right: 4px;
+}

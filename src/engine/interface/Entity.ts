@@ -6,4 +6,8 @@ export enum DefaultEntityName {
     Keyboard = 'Keyboard',
     EventManager = 'EventManager',
     Viewport = 'Viewport',
+    Selection = 'Selection',
+    History = 'History',
+    Guide = 'Guide',
+    Tool = 'Tool',
 }

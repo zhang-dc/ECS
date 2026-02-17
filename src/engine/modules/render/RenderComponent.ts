@@ -1,4 +1,4 @@
-import { Application, DisplayObject, Ticker, TickerCallback } from 'pixi.js';
+import { Application, Ticker, TickerCallback } from 'pixi.js';
 import { BaseComponent, BaseComponentProps } from '../../Component';
 
 export interface RenderComponentProps extends BaseComponentProps {
