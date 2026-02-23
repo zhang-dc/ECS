@@ -12,10 +12,10 @@ import { LayoutSystem } from './modules/layout/LayoutSystem';
 import { PointerSystem } from './modules/pointer/PointerSystem';
 import { RenderSystem } from './modules/render/RenderSystem';
 import { ViewportSystem } from './modules/viewport/ViewportSystem';
-import { Stage } from './Stage';
+import { World } from './Stage';
 
 export interface InitSceneProps {
-    world: Stage;
+    world: World;
     systemList: SystemInfo[];
     name: string;
 }
@@ -31,7 +31,7 @@ export function initScene(props: InitSceneProps) {
 }
 
 export interface InitTaskSystemListProps {
-    world: Stage;
+    world: World;
     systemList: SystemInfo[];
     canvas: HTMLCanvasElement;
     mask: HTMLDivElement;

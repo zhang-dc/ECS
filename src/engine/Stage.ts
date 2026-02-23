@@ -10,7 +10,7 @@ type OnComponentAddedFunc<T extends ComponentType> = (type: T, comp: ComponentIn
 type OnComponentRemovedFunc<T extends ComponentType> = (type: T, comp: ComponentInstance<T>) => void;
 
 /**
- * World（原 Stage）—— 核心关联关系管理者
+ * World —— 核心关联关系管理者
  *
  * 职责：
  * 1. 管理所有 Entity 的注册/注销
@@ -19,12 +19,10 @@ type OnComponentRemovedFunc<T extends ComponentType> = (type: T, comp: Component
  * 4. 变更追踪（支持响应式 Query）
  * 5. 提供 Query API
  */
-export class Stage {
+export class World {
     // ========== Entity 注册表 ==========
-    /** 所有 Entity（通过 addEntity 添加到场景中的） */
+    /** 所有已注册的 Entity */
     entities: Entity[] = [];
-    /** 所有创建过的 Entity（包括未 addEntity 的） */
-    fullEntities: Entity[] = [];
     /** Entity ID -> Entity 实例 */
     private entityMap: Map<string, Entity> = new Map();
 
@@ -35,37 +33,29 @@ export class Stage {
     // ========== 反向索引：ComponentType -> Set<EntityId> ==========
     private componentIndex: Map<ComponentType, Set<string>> = new Map();
 
+    // ========== Component 实例 -> EntityId 反向索引（O(1) 查找） ==========
+    private componentOwner: Map<BaseComponent, string> = new Map();
+
     // ========== 变更追踪（支持响应式 Query） ==========
     private addedComponents: Map<ComponentType, Set<string>> = new Map();
     private removedComponents: Map<ComponentType, Set<string>> = new Map();
     private changedComponents: Map<ComponentType, Set<string>> = new Map();
 
-    // ========== 兼容旧 API 的组件列表 ==========
-    componentListMap: Map<ComponentType, ComponentInstance<ComponentType>[]> = new Map();
-
     // ========== 监听器 ==========
     onComponentAddedListenerMap: Map<ComponentType, OnComponentAddedFunc<ComponentType>[]> = new Map();
     onComponentRemovedListenerMap: Map<ComponentType, OnComponentRemovedFunc<ComponentType>[]> = new Map();
 
-    constructor() {
-        (window as any).stage = this;
-    }
+    constructor() {}
 
     // ========== Entity 管理 ==========
 
-    addEntity(entity: Entity) {
+    /**
+     * 注册 Entity 到 World
+     * Entity 构造时自动调用
+     */
+    registerEntity(entity: Entity) {
         this.entities.push(entity);
         this.entityMap.set(entity.id, entity);
-        // 确保 entityComponents 存在
-        if (!this.entityComponents.has(entity.id)) {
-            this.entityComponents.set(entity.id, new Map());
-        }
-    }
-
-    createEntity(entity: Entity) {
-        this.fullEntities.push(entity);
-        this.entityMap.set(entity.id, entity);
-        // 初始化 entityComponents
         if (!this.entityComponents.has(entity.id)) {
             this.entityComponents.set(entity.id, new Map());
         }
@@ -83,7 +73,6 @@ export class Stage {
         this.entityComponents.delete(entity.id);
         this.entityMap.delete(entity.id);
         this.entities = this.entities.filter(i => i !== entity);
-        this.fullEntities = this.fullEntities.filter(i => i !== entity);
     }
 
     getEntityById(id: string): Entity | undefined {
@@ -116,6 +105,9 @@ export class Stage {
         }
         entitySet.add(entityId);
 
+        // Component -> EntityId 反向索引
+        this.componentOwner.set(component, entityId);
+
         // 变更追踪
         let addedSet = this.addedComponents.get(type);
         if (!addedSet) {
@@ -123,11 +115,6 @@ export class Stage {
             this.addedComponents.set(type, addedSet);
         }
         addedSet.add(entityId);
-
-        // 兼容旧 componentListMap
-        const list = this.componentListMap.get(type) ?? [];
-        list.push(component);
-        this.componentListMap.set(type, list);
 
         // 触发监听器
         const listeners = this.onComponentAddedListenerMap.get(type) ?? [];
@@ -139,7 +126,10 @@ export class Stage {
             this._ensureParentOf(childOf.parentId);
             const parentOf = this.getComponentOfEntity(childOf.parentId, ParentOf) as ParentOf | undefined;
             if (parentOf) {
-                parentOf.addChild(entityId);
+                const childIds = parentOf.childIds;
+                if (!childIds.includes(entityId)) {
+                    childIds.push(entityId);
+                }
             }
         }
     }
@@ -227,6 +217,18 @@ export class Stage {
         return result;
     }
 
+    /**
+     * 获取拥有任一指定 ComponentType 的所有 Entity ID（并集）
+     */
+    getEntitiesWithAnyComponent(types: ComponentType[]): string[] {
+        const result = new Set<string>();
+        types.forEach(t => {
+            const ids = this.componentIndex.get(t) ?? new Set<string>();
+            Array.from(ids).forEach(id => result.add(id));
+        });
+        return Array.from(result);
+    }
+
     // ========== 变更追踪 ==========
 
     getAddedEntities(type: ComponentType): Set<string> {
@@ -253,21 +255,12 @@ export class Stage {
     // ========== Component -> Entity 反向查找 ==========
 
     /**
-     * 通过 Component 实例找到它所属的 Entity
-     * 遍历 entityComponents 查找
+     * 通过 Component 实例找到它所属的 Entity（O(1)）
      */
     getEntityByComponent(component: BaseComponent): Entity | undefined {
-        const entries = Array.from(this.entityComponents.entries());
-        for (let i = 0; i < entries.length; i++) {
-            const [entityId, compMap] = entries[i];
-            const comps = Array.from(compMap.values());
-            for (let j = 0; j < comps.length; j++) {
-                if (comps[j] === component) {
-                    return this.entityMap.get(entityId);
-                }
-            }
-        }
-        return undefined;
+        const entityId = this.componentOwner.get(component);
+        if (!entityId) return undefined;
+        return this.entityMap.get(entityId);
     }
 
     // ========== Query API ==========
@@ -280,54 +273,49 @@ export class Stage {
         return new QueryBuilder(this);
     }
 
-    // ========== 兼容旧 API ==========
+    // ========== Resource API ==========
 
     /**
-     * 旧 API：通过 Component 实例添加（保持向后兼容）
+     * 获取全局唯一的单例组件（"资源"）
+     * 替代旧的 findComponent
      */
-    addComponent<T extends ComponentType>(component: ComponentInstance<T>) {
-        const type = component.constructor as ComponentType;
-        // 兼容旧 componentListMap
-        const list = this.componentListMap.get(type) ?? [];
-        list.push(component);
-        this.componentListMap.set(type, list);
-        // 触发监听器
-        const listeners = this.onComponentAddedListenerMap.get(type) ?? [];
-        listeners.forEach(l => l(type, component));
+    getResource<T extends ComponentType>(type: T): ComponentInstance<T> | undefined {
+        const ids = this.getEntitiesWithComponent(type);
+        const firstId = Array.from(ids)[0];
+        if (!firstId) return undefined;
+        return this.getComponentOfEntity(firstId, type);
     }
 
-    /**
-     * 旧 API：通过 Component 实例移除
-     */
-    removeComponent<T extends ComponentType>(component: ComponentInstance<T>) {
-        const type = component.constructor as ComponentType;
-        let list = this.componentListMap.get(type) ?? [];
-        const index = list.indexOf(component);
-        if (index > -1) {
-            list = list.filter(i => i !== component);
-            const listeners = this.onComponentRemovedListenerMap.get(type) ?? [];
-            listeners.forEach(l => l(type, component));
-        }
-        this.componentListMap.set(type, list);
+    // ========== 兼容旧 API（阶段七将全量迁移后删除） ==========
+
+    /** @deprecated 使用 getResource() */
+    findComponent<T extends ComponentType>(componentType: T): ComponentInstance<T> | undefined {
+        return this.getResource(componentType);
     }
 
-    findComponent<T extends ComponentType>(componentType: T) {
-        const list = this.componentListMap.get(componentType) ?? [];
-        return list[0] as ComponentInstance<T>;
-    }
-
-    findComponents<T extends ComponentType>(componentType: T | T[]) {
+    /** @deprecated 使用 query() */
+    findComponents<T extends ComponentType>(componentType: T | T[]): ComponentInstance<T>[] {
         if (Array.isArray(componentType)) {
-            const list = componentType.reduce((acc: ComponentInstance<T>[], type: T) => {
-                const list = (this.componentListMap.get(type) ?? []) as ComponentInstance<T>[];
-                acc.push(...list);
-                return acc;
-            }, []);
-            return list as ComponentInstance<T>[];
+            const result: ComponentInstance<T>[] = [];
+            componentType.forEach((type: T) => {
+                const ids = this.getEntitiesWithComponent(type);
+                Array.from(ids).forEach(id => {
+                    const comp = this.getComponentOfEntity(id, type);
+                    if (comp) result.push(comp);
+                });
+            });
+            return result;
         }
-        const list = this.componentListMap.get(componentType) ?? [];
-        return list as ComponentInstance<T>[];
+        const ids = this.getEntitiesWithComponent(componentType);
+        const result: ComponentInstance<T>[] = [];
+        Array.from(ids).forEach(id => {
+            const comp = this.getComponentOfEntity(id, componentType);
+            if (comp) result.push(comp);
+        });
+        return result;
     }
+
+    // ========== 监听器 API ==========
 
     addComponentAddedListener<T extends ComponentType>(type: T, listener: OnComponentAddedFunc<T>) {
         const list = this.onComponentAddedListenerMap.get(type) ?? [];
@@ -365,7 +353,7 @@ export class Stage {
             const childOf = component as ChildOf;
             const parentOf = this.getComponentOfEntity(childOf.parentId, ParentOf) as ParentOf | undefined;
             if (parentOf) {
-                parentOf.removeChild(entityId);
+                parentOf.childIds = parentOf.childIds.filter(id => id !== entityId);
             }
         }
 
@@ -375,6 +363,9 @@ export class Stage {
             entitySet.delete(entityId);
         }
 
+        // Component -> EntityId 反向索引
+        this.componentOwner.delete(component);
+
         // 变更追踪
         let removedSet = this.removedComponents.get(type);
         if (!removedSet) {
@@ -382,11 +373,6 @@ export class Stage {
             this.removedComponents.set(type, removedSet);
         }
         removedSet.add(entityId);
-
-        // 兼容旧 componentListMap
-        let list = this.componentListMap.get(type) ?? [];
-        list = list.filter(i => i !== component);
-        this.componentListMap.set(type, list);
 
         // 触发监听器
         const listeners = this.onComponentRemovedListenerMap.get(type) ?? [];
@@ -403,3 +389,6 @@ export class Stage {
         }
     }
 }
+
+/** 过渡兼容别名 */
+export { World as Stage };

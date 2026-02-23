@@ -1,14 +1,14 @@
 import { Application, DisplayObject } from 'pixi.js';
 import { Entity } from '../../../../engine/Entity';
 import { SpriteRenderer } from '../../../../engine/modules/render/SpriteRenderer';
-import { Stage } from '../../../../engine/Stage';
+import { World } from '../../../../engine/Stage';
 import { EntityName } from '../../../interface/Entity';
 import logo512 from '../../../assets/img/logo512.png';
 import { HitTestComponent, HitTestType } from '../../../../engine/modules/hitTest/HitTestComponent';
 import { LayoutComponent } from '../../../../engine/modules/layout/LayoutComponent';
 
 export interface InstanceMainThemeBackground {
-    world: Stage,
+    world: World,
     renderStage: Application,
 }
 

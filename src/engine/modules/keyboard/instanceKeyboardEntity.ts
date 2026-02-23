@@ -1,10 +1,10 @@
 import { Entity } from '../../Entity';
 import { DefaultEntityName } from '../../interface/Entity';
-import { Stage } from '../../Stage';
+import { World } from '../../Stage';
 import { KeyboardComponent } from './KeyboardComponent';
 
 export interface InstanceKeyboardEntityProps {
-    world: Stage;
+    world: World;
 }
 
 export function instanceKeyboardEntity(props: InstanceKeyboardEntityProps) {
@@ -20,8 +20,6 @@ export function instanceKeyboardEntity(props: InstanceKeyboardEntityProps) {
     const keyboardComp = new KeyboardComponent({});
 
     entity.addComponent(keyboardComp);
-
-    world.addEntity(entity);
 
     return entity;
 }

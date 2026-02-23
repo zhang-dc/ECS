@@ -1,11 +1,11 @@
 import { Application, Container } from 'pixi.js';
 import { Entity } from '../../Entity';
 import { DefaultEntityName } from '../../interface/Entity';
-import { Stage } from '../../Stage';
+import { World } from '../../Stage';
 import { RenderConfig } from './RenderConfig';
 
 export interface InstanceRenderConfigEntityProps {
-    world: Stage,
+    world: World,
     renderStage: Application;
     container: Container;
     canvas: HTMLCanvasElement;
@@ -26,8 +26,6 @@ export function instanceRenderConfigEntity(props: InstanceRenderConfigEntityProp
     });
 
     entity.addComponent(renderConfig);
-
-    world.addEntity(entity);
 
     return entity;
 }

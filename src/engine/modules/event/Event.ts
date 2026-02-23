@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from 'uuid';
 import { BaseComponent } from '../../Component';
-import { Stage } from '../../Stage';
+import { World } from '../../Stage';
 import { DefaultEntityName } from '../../interface/Entity';
 import { Entity } from '../../Entity';
 
@@ -30,7 +30,7 @@ export class BaseEvent implements IEvent {
 
 /**
  * EventManager —— 纯数据组件
- * 只存储事件队列，行为逻辑由 EventSystem 驱动
+ * 只存储事件队列，不包含行为逻辑
  */
 export class EventManager extends BaseComponent {
     eventListMap: Map<EventType, EventInstance<EventType>[]> = new Map();
@@ -38,20 +38,26 @@ export class EventManager extends BaseComponent {
     getEvents<T extends EventType>(type: T) {
         return this.eventListMap.get(type) as EventInstance<T>[];
     }
+}
 
-    sendEvent(event: BaseEvent) {
-        const type = event.constructor as EventType;
-        const list = this.eventListMap.get(type) ?? [];
-        this.eventListMap.set(type, [...list, event]);
-    }
+/**
+ * 向 EventManager 发送事件（工具函数）
+ */
+export function sendEvent(eventManager: EventManager, event: BaseEvent): void {
+    const type = event.constructor as EventType;
+    const list = eventManager.eventListMap.get(type) ?? [];
+    eventManager.eventListMap.set(type, [...list, event]);
+}
 
-    clearEvent() {
-        this.eventListMap.clear();
-    }
+/**
+ * 清空 EventManager 的事件队列（工具函数）
+ */
+export function clearEvents(eventManager: EventManager): void {
+    eventManager.eventListMap.clear();
 }
 
 export interface InstanceEventManagerProps {
-    world: Stage;
+    world: World;
 }
 
 export function instanceEventManager(props: InstanceEventManagerProps) {
@@ -67,8 +73,6 @@ export function instanceEventManager(props: InstanceEventManagerProps) {
     });
 
     entity.addComponent(eventManager);
-
-    world.addEntity(entity);
 
     return entity;
 }

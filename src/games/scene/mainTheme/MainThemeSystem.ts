@@ -11,7 +11,6 @@ export class MainThemeSystem extends System {
     }
 
     initMainTheme() {
-        const background = instanceMainThemeBackground({ world: this.world, renderStage: this.renderConfig!.renderStage })
-        this.world.addEntity(background);
+        instanceMainThemeBackground({ world: this.world, renderStage: this.renderConfig!.renderStage });
     }
 }

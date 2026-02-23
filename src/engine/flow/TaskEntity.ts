@@ -1,10 +1,10 @@
 import { Entity } from '../Entity';
 import { DefaultEntityName } from '../interface/Entity';
-import { Stage } from '../Stage';
+import { World } from '../Stage';
 import { Task, TaskProps } from './Task';
 
 export interface InstanceTaskEntityProps extends TaskProps {
-    world: Stage,
+    world: World,
 }
 
 export function instanceTaskEntity(props: InstanceTaskEntityProps) {
@@ -18,8 +18,6 @@ export function instanceTaskEntity(props: InstanceTaskEntityProps) {
     const task = new Task(props);
 
     entity.addComponent(task);
-
-    world.addEntity(entity);
 
     return entity;
 }

@@ -14,7 +14,7 @@ export class TaskFlow extends System {
     }
 
     init() {
-        this.task = this.world.findComponent(Task);
+        this.task = this.world.findComponent(Task)!;
         this.task.systemList.forEach((system) => {
             system.system.start();
         });

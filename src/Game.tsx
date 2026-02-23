@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import './Game.css';
-import { Stage } from './engine/Stage';
+import { World } from './engine/Stage';
 import { TaskFlow } from './engine/flow/TaskFlow';
 import { initMainThemeScene } from './games/scene/mainTheme/scene';
 
@@ -18,7 +18,7 @@ function Game() {
         console.log('init canvas', size)
         canvas.width = Math.floor(size.width);
         canvas.height = Math.floor(size.height);
-        const world = new Stage();
+        const world = new World();
         const taskFlow = initMainThemeScene({ world, canvas, mask });
         setTaskFlow(taskFlow);
         console.log('run taskFlow');

@@ -1,6 +1,6 @@
 import { ComponentType } from './Component';
 import { Entity } from './Entity';
-import { Stage } from './Stage';
+import { World } from './Stage';
 
 /**
  * QueryBuilder —— 声明式查询构建器
@@ -13,11 +13,12 @@ import { Stage } from './Stage';
  *   movers.changed  // 本帧被 write() 过的实体
  */
 export class QueryBuilder {
-    private world: Stage;
+    private world: World;
     private withTypes: ComponentType[] = [];
     private withoutTypes: ComponentType[] = [];
+    private withAnyTypes: ComponentType[] = [];
 
-    constructor(world: Stage) {
+    constructor(world: World) {
         this.world = world;
     }
 
@@ -38,12 +39,33 @@ export class QueryBuilder {
     }
 
     /**
+     * 要求实体拥有任一指定 Component（并集）
+     * 用于按基类查询子类，如 withAny(LineRenderer, RectRenderer, SpriteRenderer)
+     */
+    withAny(...types: ComponentType[]): QueryBuilder {
+        this.withAnyTypes.push(...types);
+        return this;
+    }
+
+    /**
      * 获取所有当前匹配的实体
      */
     get current(): Entity[] {
-        if (this.withTypes.length === 0) return [];
+        // 至少需要 with 或 withAny 条件之一
+        if (this.withTypes.length === 0 && this.withAnyTypes.length === 0) return [];
 
-        const entityIds = this.world.getEntitiesWithComponents(this.withTypes);
+        let entityIds: string[];
+
+        if (this.withTypes.length > 0 && this.withAnyTypes.length > 0) {
+            // 同时有 with 和 withAny：先取 with 交集，再与 withAny 并集取交集
+            const withIds = new Set(this.world.getEntitiesWithComponents(this.withTypes));
+            const anyIds = new Set(this.world.getEntitiesWithAnyComponent(this.withAnyTypes));
+            entityIds = Array.from(withIds).filter(id => anyIds.has(id));
+        } else if (this.withTypes.length > 0) {
+            entityIds = this.world.getEntitiesWithComponents(this.withTypes);
+        } else {
+            entityIds = this.world.getEntitiesWithAnyComponent(this.withAnyTypes);
+        }
 
         return entityIds
             .filter(id => {

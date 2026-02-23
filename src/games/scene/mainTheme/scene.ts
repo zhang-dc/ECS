@@ -1,12 +1,12 @@
 import { HitTestName } from '../../../engine/modules/hitTest/HitTest';
 import { initScene, initTaskSystemList } from '../../../engine/Scene';
-import { Stage } from '../../../engine/Stage';
+import { World } from '../../../engine/Stage';
 import { EntityName } from '../../interface/Entity';
 import { SystemIndex } from '../../interface/Task';
 import { MainThemeSystem } from './MainThemeSystem';
 
 export interface InitMainThemeSceneProps {
-    world: Stage,
+    world: World,
     canvas: HTMLCanvasElement;
     mask: HTMLDivElement;
 }

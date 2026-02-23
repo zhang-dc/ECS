@@ -1,13 +1,13 @@
-import { Stage } from './Stage';
+import { World } from './Stage';
 
 export interface SystemProps {
-    world: Stage;
+    world: World;
 }
 
 export type SystemClass = new (props: any) => System;
 
 export abstract class System {
-    protected world: Stage;
+    protected world: World;
 
     /**
      * 声明式约束：该 System 应在哪些 System 之前执行
