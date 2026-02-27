@@ -1,4 +1,4 @@
-import { EditorInterface, baselineToMetricesRange, calcJustifiedWordWidth, getLineIndentationLevelPixels, getLineLastSpaceIdx, isJustifiedChar } from "..";
+import { EditorInterface, baselineToMetricesRange, calcJustifiedWordWidth, getLineLastSpaceIdx, isJustifiedChar } from "..";
 
 // 计算每行字符真实的偏移值
 export const getLogicalCharacterOffset: EditorInterface['getLogicalCharacterOffset'] = (editor) => {
@@ -8,7 +8,6 @@ export const getLogicalCharacterOffset: EditorInterface['getLogicalCharacterOffs
     const glyphs = editor.getGlyphs()
     if (!baselines?.length || !glyphs?.length || !metrices?.length) return [];
     const logicalCharacterOffset: number[] = []
-    const { paragraphIndent } = editor.style;
 
     for (let i = 0; i < baselines.length; i++) {
         const baseline = baselines[i];

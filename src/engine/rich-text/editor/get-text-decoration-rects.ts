@@ -8,8 +8,9 @@ export const getTextDecorationRects: EditorInterface['getTextDecorationRects'] =
     let character = 0
     for (let i = 0; i < glyphs.length; i++) {
         const glyph = glyphs[i];
-        character = glyph?.firstCharacter || character
-        const baseline = baselines.find(item => item.firstCharacter <= character && item.endCharacter > character)
+        const currentCharacter = glyph?.firstCharacter ?? character;
+        character = currentCharacter;
+        const baseline = baselines.find(item => item.firstCharacter <= currentCharacter && item.endCharacter > currentCharacter)
         const height = baseline?.lineHeight || glyph.fontSize
         if (glyph?.xAdvance === undefined) {
             rects.push([0, 0, 0, 0])

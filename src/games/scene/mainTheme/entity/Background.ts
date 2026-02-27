@@ -1,4 +1,4 @@
-import { Application, DisplayObject } from 'pixi.js';
+import { Application } from 'pixi.js';
 import { Entity } from '../../../../engine/Entity';
 import { SpriteRenderer } from '../../../../engine/modules/render/SpriteRenderer';
 import { Stage } from '../../../../engine/Stage';

@@ -98,7 +98,7 @@ export class RichTextRenderer extends RenderComponent {
             if (this.cursorVisible) {
                 const cursorRects = editor.getSelectionRects();
                 if (cursorRects.length > 0) {
-                    const [cx, cy, _cw, ch] = cursorRects[0];
+                    const [cx, cy, , ch] = cursorRects[0];
                     g.lineStyle(1.5, 0x333333, 1);
                     g.moveTo(cx, cy);
                     g.lineTo(cx, cy + ch);
