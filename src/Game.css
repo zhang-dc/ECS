@@ -1,13 +1,83 @@
-#main {
-    position: absolute;
-    top: 0;
-    left: 0;
+/* 游戏容器样式 */
+.game-container {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    background: #1a1a2e;
+    overflow: hidden;
 }
 
-#mask {
+.game-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.game-mask {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+    pointer-events: none;
+}
+
+/* 开始菜单样式 */
+.game-start-menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #fff;
+    z-index: 200;
+}
+
+.game-start-menu h1 {
+    font-size: 72px;
+    margin: 0;
+    color: #f5c518;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+    letter-spacing: 10px;
+}
+
+.game-start-menu h2 {
+    font-size: 28px;
+    margin: 10px 0 30px;
+    color: #aaa;
+    font-weight: normal;
+}
+
+.game-description {
+    font-size: 16px;
+    color: #888;
+    margin-bottom: 40px;
+}
+
+.start-button {
+    padding: 15px 60px;
+    font-size: 24px;
+    background: linear-gradient(135deg, #f5c518, #e0a800);
+    border: none;
+    border-radius: 50px;
+    color: #1a1a2e;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(245, 197, 24, 0.4);
+}
+
+.start-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(245, 197, 24, 0.6);
+}
+
+.start-button:active {
+    transform: scale(0.98);
+}
+
+.game-version {
+    margin-top: 40px;
+    font-size: 12px;
+    color: #555;
 }

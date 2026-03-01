@@ -2,6 +2,19 @@ export enum DefaultTaskName {
 
 }
 
+/**
+ * 场景类型枚举
+ * 用于根据路径/场景类型初始化不同的系统组合
+ */
+export enum SceneType {
+    /** 画布编辑场景 - 包含完整的交互系统 */
+    Canvas = 'canvas',
+    /** 游戏主菜单场景 - 仅包含主菜单显示系统 */
+    MainTheme = 'mainTheme',
+    /** 游戏主场景 - 包含游戏逻辑系统 */
+    GamePlay = 'gamePlay',
+}
+
 export enum DefaultSystemName {
     InteractSystem = 'InteractSystem',
     KeyboardSystem = 'KeyboardSystem',

@@ -10,7 +10,7 @@ function App() {
                 <Routes>
                     <Route path="/games" element={<Game />} />
                     <Route path="/canvas" element={<Canvas />} />
-                    <Route path="*" element={<Navigate to="/canvas" />} />
+                    <Route path="*" element={<Navigate to="/games" />} />
                 </Routes>
             </div>
         </BrowserRouter>

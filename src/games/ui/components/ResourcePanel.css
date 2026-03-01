@@ -1,0 +1,37 @@
+.resource-panel {
+    background: rgba(30, 30, 30, 0.9);
+    padding: 15px;
+    border-radius: 8px;
+    color: #fff;
+    min-width: 150px;
+}
+
+.resource-panel h3 {
+    margin: 0 0 15px 0;
+    font-size: 14px;
+    color: #aaa;
+    border-bottom: 1px solid #444;
+    padding-bottom: 8px;
+}
+
+.resource-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #333;
+}
+
+.resource-item:last-child {
+    border-bottom: none;
+}
+
+.resource-label {
+    font-size: 12px;
+    color: #ccc;
+}
+
+.resource-value {
+    font-size: 12px;
+    color: #4caf50;
+    font-weight: bold;
+}

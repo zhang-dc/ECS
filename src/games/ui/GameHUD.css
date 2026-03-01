@@ -1,0 +1,76 @@
+.game-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.game-hud > * {
+    pointer-events: auto;
+}
+
+.hud-top {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.hud-left {
+    position: absolute;
+    top: 80px;
+    left: 20px;
+}
+
+.hud-right {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+}
+
+.hud-bottom {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    padding: 10px 30px;
+    background: rgba(30, 30, 30, 0.9);
+    border-radius: 8px;
+}
+
+.game-title {
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.game-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.control-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 6px;
+    background: #444;
+    color: #fff;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.2s;
+}
+
+.control-btn:hover {
+    background: #666;
+}
+
+.control-btn:active {
+    background: #333;
+}

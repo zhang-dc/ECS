@@ -1,0 +1,27 @@
+.time-display {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 20px;
+    background: rgba(30, 30, 30, 0.9);
+    border-radius: 8px;
+    color: #fff;
+}
+
+.time-display.loading {
+    color: #888;
+    font-size: 14px;
+}
+
+.time-date {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.time-season {
+    font-size: 14px;
+    padding: 4px 10px;
+    background: #2196f3;
+    border-radius: 4px;
+    color: #fff;
+}

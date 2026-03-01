@@ -1,6 +1,7 @@
 import { HitTestName } from '../engine/modules/hitTest/HitTest';
 import { initScene, initTaskSystemList } from '../engine/Scene';
 import { Stage } from '../engine/Stage';
+import { SceneType } from '../engine/interface/Task';
 
 export interface InitCanvasSceneProps {
     world: Stage;
@@ -21,6 +22,7 @@ export function initCanvasScene(props: InitCanvasSceneProps) {
         systemList: [],
         canvas,
         mask,
+        sceneType: SceneType.Canvas,
         hitTestOptions: {
             extendHitTestGroup: {
                 [HitTestName.Pointer]: HitTestName.ANY_HIT_TEST_ENTITY,
