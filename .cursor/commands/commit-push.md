@@ -14,5 +14,5 @@
 
 ## Commit规范
 
-- 格式: `[类型] 描述`
+- 格式: `类型: 描述`
 - 类型: feat, fix, refactor, docs, style, test, chore
