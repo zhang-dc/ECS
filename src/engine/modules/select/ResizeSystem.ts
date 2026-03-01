@@ -325,9 +325,10 @@ export class ResizeSystem extends System {
             const entityNewW = Math.max(snapshot.width * scaleX, MIN_SIZE);
             const entityNewH = Math.max(snapshot.height * scaleY, MIN_SIZE);
 
-            // Alt 中心对称模式：先取整尺寸，再从固定中心反算位置，避免手柄抖动
+            // 统一取整逻辑：先取整尺寸，再基于固定锚点反算位置，避免位置和尺寸分别取整导致抖动
             let roundedX: number, roundedY: number, roundedW: number, roundedH: number;
             if (altDown) {
+                // Alt 中心对称模式
                 roundedW = Math.round(entityNewW);
                 roundedH = Math.round(entityNewH);
                 const snapshotCX = snapshot.x + snapshot.width / 2;
@@ -335,10 +336,14 @@ export class ResizeSystem extends System {
                 roundedX = Math.round(snapshotCX - roundedW / 2);
                 roundedY = Math.round(snapshotCY - roundedH / 2);
             } else {
-                roundedX = Math.round(entityNewX);
-                roundedY = Math.round(entityNewY);
+                // 普通模式：先取整尺寸，再基于锚点反算位置
                 roundedW = Math.round(entityNewW);
                 roundedH = Math.round(entityNewH);
+                // 基于原始锚点比例计算位置
+                const anchorX = handleDef.anchorX;
+                const anchorY = handleDef.anchorY;
+                roundedX = Math.round(entityNewX - (roundedW - entityNewW) * anchorX);
+                roundedY = Math.round(entityNewY - (roundedH - entityNewH) * anchorY);
             }
 
             // 将世界坐标转换为局部坐标（减去父级链的世界偏移）

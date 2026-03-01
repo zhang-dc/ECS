@@ -53,8 +53,6 @@ export class Stage {
     private stageListeners: Map<string, Set<StageEventCallback>> = new Map();
 
     constructor() {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).stage = this;
     }
 
     // ==================== EventBus ====================

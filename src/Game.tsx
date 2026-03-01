@@ -23,6 +23,11 @@ function Game() {
         setTaskFlow(taskFlow);
         console.log('run taskFlow');
         taskFlow.run();
+
+        // 清理函数：组件卸载时停止 taskFlow
+        return () => {
+            taskFlow.stop();
+        };
     }, []);
     return (
         <>
