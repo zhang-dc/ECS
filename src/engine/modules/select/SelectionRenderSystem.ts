@@ -1,5 +1,6 @@
 import { Graphics, DisplayObject } from 'pixi.js';
 import { System } from '../../System';
+import { Entity } from '../../Entity';
 import { DefaultEntityName } from '../../interface/Entity';
 import { RenderConfig } from '../render/RenderConfig';
 import { LayoutComponent, getWorldAABB } from '../layout/LayoutComponent';
@@ -86,14 +87,22 @@ export class SelectionRenderSystem extends System {
 
         const selected = this.selectionState.getSelectedArray();
 
-        // 为每个选中实体绘制边框
+        // 缓存 AABB 避免重复计算（多选时每个实体会被调用多次 getWorldAABB）
+        const aabbCache: Map<Entity, { x: number; y: number; width: number; height: number }> = new Map();
+        const validAABBs: { x: number; y: number; width: number; height: number }[] = [];
+
         selected.forEach(entity => {
             const layoutComp = entity.getComponent(LayoutComponent);
             if (!layoutComp) return;
-
             const aabb = getWorldAABB(entity);
-            if (aabb.width === 0 && aabb.height === 0) return;
+            aabbCache.set(entity, aabb);
+            if (aabb.width > 0 || aabb.height > 0) {
+                validAABBs.push(aabb);
+            }
+        });
 
+        // 为每个选中实体绘制边框
+        validAABBs.forEach(aabb => {
             // 蓝色边框
             g.lineStyle(lineWidth, SELECTION_COLOR, 1);
             g.drawRect(aabb.x, aabb.y, aabb.width, aabb.height);
@@ -101,31 +110,25 @@ export class SelectionRenderSystem extends System {
 
         // 计算手柄所用的包围盒
         // 单选：用该实体的 AABB；多选：用所有选中实体的组合 AABB
+        // 使用缓存的 AABB 避免重复计算
         let boundsX = 0, boundsY = 0, boundsW = 0, boundsH = 0;
         let hasBounds = false;
 
         if (selected.length === 1) {
-            const layoutComp = selected[0].getComponent(LayoutComponent);
-            if (layoutComp) {
-                const aabb = getWorldAABB(selected[0]);
-                if (aabb.width > 0 || aabb.height > 0) {
-                    boundsX = aabb.x;
-                    boundsY = aabb.y;
-                    boundsW = aabb.width;
-                    boundsH = aabb.height;
-                    hasBounds = true;
-                }
+            const cachedAABB = aabbCache.get(selected[0]);
+            if (cachedAABB && (cachedAABB.width > 0 || cachedAABB.height > 0)) {
+                boundsX = cachedAABB.x;
+                boundsY = cachedAABB.y;
+                boundsW = cachedAABB.width;
+                boundsH = cachedAABB.height;
+                hasBounds = true;
             }
         } else if (selected.length > 1) {
-            // 多选：计算组合包围盒
+            // 多选：计算组合包围盒（使用缓存的 AABB）
             let minX = Infinity, minY = Infinity;
             let maxX = -Infinity, maxY = -Infinity;
 
-            selected.forEach(entity => {
-                const layoutComp = entity.getComponent(LayoutComponent);
-                if (!layoutComp) return;
-                const aabb = getWorldAABB(entity);
-                if (aabb.width === 0 && aabb.height === 0) return;
+            validAABBs.forEach(aabb => {
                 minX = Math.min(minX, aabb.x);
                 minY = Math.min(minY, aabb.y);
                 maxX = Math.max(maxX, aabb.x + aabb.width);

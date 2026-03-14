@@ -172,10 +172,23 @@ export class SelectSystem extends System {
             return;
         }
 
-        // 更新框选区域
+        // 更新框选区域并进行实时碰撞检测
         if (this.pointerComponent.isMoving) {
             this.selectionState.marqueeCurrentX = this.pointerComponent.x;
             this.selectionState.marqueeCurrentY = this.pointerComponent.y;
+
+            // 实时碰撞检测：拖动过程中更新选中的元素
+            const marqueeRect = this.selectionState.getMarqueeRect();
+            if (marqueeRect && (marqueeRect.width > 2 || marqueeRect.height > 2)) {
+                const entities = this.getEntitiesInRect(marqueeRect);
+                const shiftDown = this.keyboardComponent?.isKeyDown(KeyboardKey.Shift) ?? false;
+                if (shiftDown) {
+                    this.selectionState.addToSelection(entities);
+                } else {
+                    this.selectionState.selectMultiple(entities);
+                }
+                this.syncSelectComponents();
+            }
         }
 
         // 鼠标抬起时完成框选
