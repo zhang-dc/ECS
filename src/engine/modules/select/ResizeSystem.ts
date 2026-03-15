@@ -19,6 +19,12 @@ import { SelectionRenderSystem } from './SelectionRenderSystem';
 
 /** 手柄点击容差（屏幕像素） */
 const HANDLE_HIT_TOLERANCE = 12;
+/** 旋转区域外侧容差（屏幕像素） */
+const ROTATE_OUTER_TOLERANCE = HANDLE_HIT_TOLERANCE * 2.5;
+/** 角手柄类型集合 */
+const CORNER_TYPES = new Set(['tl', 'tr', 'br', 'bl']);
+/** 旋转光标 SVG（base64 内联） */
+const ROTATE_CURSOR_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21.5 2v6h-6'/%3E%3Cpath d='M21.34 13.72A10 10 0 1 1 18.57 4.53L21.5 2'/%3E%3C/svg%3E") 12 12, auto`;
 
 /** 最小尺寸（防止完全塌缩为 0） */
 const MIN_SIZE = 1;
@@ -103,9 +109,31 @@ export class ResizeSystem extends System {
     private startPointerY = 0;
     /** 当前悬停的手柄（用于光标显示） */
     private hoveredHandle: string | null = null;
+    /** resize 时元素的旋转角度（用于将 delta 投影到局部坐标系） */
+    private resizeRotation = 0;
 
     /** 是否正在 resize */
     isResizing = false;
+    /** 是否正在旋转 */
+    private isRotating = false;
+    /** 旋转开始时指针相对旋转中心的角度 */
+    private rotateStartAngle = 0;
+    /** 旋转开始时实体的 rotation 值 */
+    private rotateStartRotation = 0;
+    /** 旋转中心（世界坐标） */
+    private rotateCenterX = 0;
+    private rotateCenterY = 0;
+    /** 旋转目标实体 */
+    private rotateEntity: Entity | null = null;
+    /** 旋转开始时实体的局部坐标 */
+    private rotateStartX = 0;
+    private rotateStartY = 0;
+    /** 元素半宽半高 */
+    private rotateHalfW = 0;
+    private rotateHalfH = 0;
+    /** 父级世界偏移 */
+    private rotateParentWorldX = 0;
+    private rotateParentWorldY = 0;
 
     constructor(props: ResizeSystemProps) {
         super(props);
@@ -136,6 +164,16 @@ export class ResizeSystem extends System {
             return;
         }
 
+        // 处理旋转拖拽中
+        if (this.isRotating) {
+            this.cursorComponent?.setCursor(ROTATE_CURSOR_SVG, CursorPriority.ACTIVE_OPERATION);
+            this.handleRotating();
+            if (this.pointerComponent.hasPointerUp) {
+                this.handleRotateEnd();
+            }
+            return;
+        }
+
         // 处理 resize 拖拽中
         if (this.isResizing) {
             // 锁定光标为当前手柄方向
@@ -152,22 +190,25 @@ export class ResizeSystem extends System {
             return;
         }
 
-        // 检测手柄悬停（光标跟随）
+        // 检测手柄悬停（光标跟随）+ 旋转区域悬停
         this.updateHoverCursor();
 
-        // 检测是否点击了手柄
+        // 检测是否点击了手柄或旋转区域
         if (this.pointerComponent.hasButtonDown(PointerButtons.PRIMARY)) {
-            this.checkHandleHit();
+            if (!this.checkHandleHit()) {
+                this.checkRotateHit();
+            }
         }
     }
 
     // ==================== 手柄检测 ====================
 
-    private checkHandleHit(): void {
-        if (!this.selectionRenderSystem || !this.pointerComponent || !this.viewportComponent) return;
+    /** 检测是否点击了 resize 手柄，返回是否命中 */
+    private checkHandleHit(): boolean {
+        if (!this.selectionRenderSystem || !this.pointerComponent || !this.viewportComponent) return false;
 
         const handles = this.selectionRenderSystem.handles;
-        if (handles.length === 0) return;
+        if (handles.length === 0) return false;
 
         const scale = this.viewportComponent.scale;
         const tolerance = HANDLE_HIT_TOLERANCE / scale;
@@ -177,9 +218,10 @@ export class ResizeSystem extends System {
         for (const handle of handles) {
             if (Math.abs(px - handle.x) < tolerance && Math.abs(py - handle.y) < tolerance) {
                 this.startResize(handle.type);
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     private startResize(handleType: string): void {
@@ -188,29 +230,63 @@ export class ResizeSystem extends System {
         const selected = this.selectionState.getSelectedArray();
         if (selected.length === 0) return;
 
-        // 快照每个实体的起始状态
+        // 单选旋转元素：使用实际布局尺寸（非 AABB）
+        const isSingleRotated = selected.length === 1 &&
+            (selected[0].getComponent(LayoutComponent)?.rotation ?? 0) !== 0;
+
         this.entitySnapshots = [];
         let minX = Infinity, minY = Infinity;
         let maxX = -Infinity, maxY = -Infinity;
 
-        for (const entity of selected) {
-            const layoutComp = entity.getComponent(LayoutComponent);
-            if (!layoutComp) continue;
-            const aabb = getWorldAABB(entity);
+        if (isSingleRotated) {
+            const entity = selected[0];
+            const layoutComp = entity.getComponent(LayoutComponent)!;
             const shapeRenderer = entity.getComponent(ShapeRenderer);
+
+            // 计算世界坐标
+            let wx = layoutComp.x;
+            let wy = layoutComp.y;
+            let p = entity.parent;
+            while (p) {
+                const pl = p.getComponent(LayoutComponent);
+                if (pl) { wx += pl.x; wy += pl.y; }
+                p = p.parent;
+            }
+
             this.entitySnapshots.push({
                 entity,
-                x: aabb.x,
-                y: aabb.y,
-                width: aabb.width,
-                height: aabb.height,
+                x: wx,
+                y: wy,
+                width: layoutComp.width,
+                height: layoutComp.height,
                 flipX: shapeRenderer?.flipX ?? false,
                 flipY: shapeRenderer?.flipY ?? false,
             });
-            minX = Math.min(minX, aabb.x);
-            minY = Math.min(minY, aabb.y);
-            maxX = Math.max(maxX, aabb.x + aabb.width);
-            maxY = Math.max(maxY, aabb.y + aabb.height);
+            minX = wx; minY = wy;
+            maxX = wx + layoutComp.width;
+            maxY = wy + layoutComp.height;
+            this.resizeRotation = layoutComp.rotation;
+        } else {
+            this.resizeRotation = 0;
+            for (const entity of selected) {
+                const layoutComp = entity.getComponent(LayoutComponent);
+                if (!layoutComp) continue;
+                const aabb = getWorldAABB(entity);
+                const shapeRenderer = entity.getComponent(ShapeRenderer);
+                this.entitySnapshots.push({
+                    entity,
+                    x: aabb.x,
+                    y: aabb.y,
+                    width: aabb.width,
+                    height: aabb.height,
+                    flipX: shapeRenderer?.flipX ?? false,
+                    flipY: shapeRenderer?.flipY ?? false,
+                });
+                minX = Math.min(minX, aabb.x);
+                minY = Math.min(minY, aabb.y);
+                maxX = Math.max(maxX, aabb.x + aabb.width);
+                maxY = Math.max(maxY, aabb.y + aabb.height);
+            }
         }
 
         if (this.entitySnapshots.length === 0) return;
@@ -236,8 +312,20 @@ export class ResizeSystem extends System {
         const shiftDown = this.keyboardComponent?.isKeyDown(KeyboardKey.Shift) ?? false;
         const altDown = this.keyboardComponent?.isKeyDown(KeyboardKey.Alt) ?? false;
 
-        const dx = this.pointerComponent.x - this.startPointerX;
-        const dy = this.pointerComponent.y - this.startPointerY;
+        const rawDx = this.pointerComponent.x - this.startPointerX;
+        const rawDy = this.pointerComponent.y - this.startPointerY;
+
+        // 如果元素有旋转，将世界坐标 delta 投影到元素的局部坐标系
+        let dx: number, dy: number;
+        if (this.resizeRotation !== 0) {
+            const cos = Math.cos(this.resizeRotation);
+            const sin = Math.sin(this.resizeRotation);
+            dx = rawDx * cos + rawDy * sin;
+            dy = -rawDx * sin + rawDy * cos;
+        } else {
+            dx = rawDx;
+            dy = rawDy;
+        }
 
         // ---- Step 1: 计算组合包围盒的 raw 新尺寸 ----
         let newW = this.startAABB.width + handleDef.signX * dx;
@@ -366,8 +454,34 @@ export class ResizeSystem extends System {
                 p = p.parent;
             }
 
-            layoutComp.x = roundedX - parentWorldX;
-            layoutComp.y = roundedY - parentWorldY;
+            // 旋转元素：需要从局部空间坐标转回世界空间（考虑旋转对锚点的影响）
+            if (this.resizeRotation !== 0 && this.entitySnapshots.length === 1) {
+                const rot = layoutComp.rotation;
+                const cosR = Math.cos(rot);
+                const sinR = Math.sin(rot);
+
+                // 锚点在新局部矩形中的偏移
+                const anchorLocalX = roundedW * handleDef.anchorX;
+                const anchorLocalY = roundedH * handleDef.anchorY;
+
+                // 锚点在旧局部矩形中的偏移
+                const oldAnchorLocalX = snapshot.width * handleDef.anchorX;
+                const oldAnchorLocalY = snapshot.height * handleDef.anchorY;
+
+                // 旧锚点的世界坐标 = snapshot.(x,y) + rotate(oldAnchorLocal)
+                const oldAnchorWorldX = snapshot.x + oldAnchorLocalX * cosR - oldAnchorLocalY * sinR;
+                const oldAnchorWorldY = snapshot.y + oldAnchorLocalX * sinR + oldAnchorLocalY * cosR;
+
+                // 新的 (x,y) = 旧锚点世界坐标 - rotate(新锚点局部偏移)
+                const newWorldX = oldAnchorWorldX - (anchorLocalX * cosR - anchorLocalY * sinR);
+                const newWorldY = oldAnchorWorldY - (anchorLocalX * sinR + anchorLocalY * cosR);
+
+                layoutComp.x = newWorldX - parentWorldX;
+                layoutComp.y = newWorldY - parentWorldY;
+            } else {
+                layoutComp.x = roundedX - parentWorldX;
+                layoutComp.y = roundedY - parentWorldY;
+            }
             layoutComp.width = roundedW;
             layoutComp.height = roundedH;
             layoutComp.dirty = true;
@@ -404,6 +518,135 @@ export class ResizeSystem extends System {
         }
     }
 
+    // ==================== 旋转 ====================
+
+    /** 检测是否点击了角手柄外侧的旋转区域 */
+    private checkRotateHit(): void {
+        if (!this.selectionRenderSystem || !this.pointerComponent || !this.viewportComponent) return;
+        if (!this.selectionState) return;
+
+        // 仅单选支持旋转
+        const selected = this.selectionState.getSelectedArray();
+        if (selected.length !== 1) return;
+
+        const handles = this.selectionRenderSystem.handles;
+        if (handles.length === 0) return;
+
+        const scale = this.viewportComponent.scale;
+        const tolerance = HANDLE_HIT_TOLERANCE / scale;
+        const outerTolerance = ROTATE_OUTER_TOLERANCE / scale;
+        const px = this.pointerComponent.x;
+        const py = this.pointerComponent.y;
+
+        for (const handle of handles) {
+            if (!CORNER_TYPES.has(handle.type)) continue;
+            const dist = Math.max(Math.abs(px - handle.x), Math.abs(py - handle.y));
+            if (dist >= tolerance && dist < outerTolerance) {
+                this.startRotation(selected[0]);
+                return;
+            }
+        }
+    }
+
+    private startRotation(entity: Entity): void {
+        if (!this.pointerComponent) return;
+
+        const layout = entity.getComponent(LayoutComponent);
+        if (!layout) return;
+
+        // 记录初始局部坐标
+        this.rotateStartX = layout.x;
+        this.rotateStartY = layout.y;
+        this.rotateHalfW = layout.width / 2;
+        this.rotateHalfH = layout.height / 2;
+
+        // 计算父级世界偏移
+        this.rotateParentWorldX = 0;
+        this.rotateParentWorldY = 0;
+        let p = entity.parent;
+        while (p) {
+            const pl = p.getComponent(LayoutComponent);
+            if (pl) {
+                this.rotateParentWorldX += pl.x;
+                this.rotateParentWorldY += pl.y;
+            }
+            p = p.parent;
+        }
+
+        // 旋转中心 = 元素中心的世界坐标
+        // 当前旋转角度下，中心相对于 (x,y) 的偏移需要考虑已有旋转
+        const cos0 = Math.cos(layout.rotation);
+        const sin0 = Math.sin(layout.rotation);
+        const worldX = this.rotateStartX + this.rotateParentWorldX;
+        const worldY = this.rotateStartY + this.rotateParentWorldY;
+        this.rotateCenterX = worldX + this.rotateHalfW * cos0 - this.rotateHalfH * sin0;
+        this.rotateCenterY = worldY + this.rotateHalfW * sin0 + this.rotateHalfH * cos0;
+
+        const dx = this.pointerComponent.x - this.rotateCenterX;
+        const dy = this.pointerComponent.y - this.rotateCenterY;
+        this.rotateStartAngle = Math.atan2(dy, dx);
+        this.rotateStartRotation = layout.rotation;
+
+        this.rotateEntity = entity;
+        this.isRotating = true;
+        this.world.isResizing = true;
+    }
+
+    private handleRotating(): void {
+        if (!this.rotateEntity || !this.pointerComponent) return;
+
+        const layout = this.rotateEntity.getComponent(LayoutComponent);
+        if (!layout) return;
+
+        const dx = this.pointerComponent.x - this.rotateCenterX;
+        const dy = this.pointerComponent.y - this.rotateCenterY;
+        const currentAngle = Math.atan2(dy, dx);
+        let deltaAngle = currentAngle - this.rotateStartAngle;
+
+        // Shift 约束：15° 步进
+        const shiftDown = this.keyboardComponent?.isKeyDown(KeyboardKey.Shift) ?? false;
+        if (shiftDown) {
+            const totalAngle = this.rotateStartRotation + deltaAngle;
+            const step = Math.PI / 12; // 15°
+            const snapped = Math.round(totalAngle / step) * step;
+            deltaAngle = snapped - this.rotateStartRotation;
+        }
+
+        const newRotation = this.rotateStartRotation + deltaAngle;
+
+        // 调整 x/y 使元素中心保持不动
+        // Pixi 绕 (x,y) 旋转，旋转后中心 = (x + halfW*cos - halfH*sin, y + halfW*sin + halfH*cos)
+        // 令旋转后中心 = rotateCenterX/Y，反算 x/y
+        const cosR = Math.cos(newRotation);
+        const sinR = Math.sin(newRotation);
+        const newWorldX = this.rotateCenterX - (this.rotateHalfW * cosR - this.rotateHalfH * sinR);
+        const newWorldY = this.rotateCenterY - (this.rotateHalfW * sinR + this.rotateHalfH * cosR);
+
+        layout.x = newWorldX - this.rotateParentWorldX;
+        layout.y = newWorldY - this.rotateParentWorldY;
+        layout.rotation = newRotation;
+        layout.dirty = true;
+
+        // 触发布局更新
+        if (this.eventManager) {
+            const layoutEvent = new LayoutEvent({
+                data: { entities: [this.rotateEntity] },
+            });
+            this.eventManager.sendEvent(layoutEvent);
+        }
+    }
+
+    private handleRotateEnd(): void {
+        if (this.rotateEntity) {
+            this.world.emit(StageEvents.ENTITY_MOVE, {
+                entities: [this.rotateEntity.name],
+            });
+        }
+        this.rotateEntity = null;
+        this.isRotating = false;
+        this.world.isResizing = false;
+    }
+
     // ==================== 结束 ====================
 
     private handleResizeEnd(): void {
@@ -421,7 +664,7 @@ export class ResizeSystem extends System {
 
     // ==================== 光标跟随 ====================
 
-    /** 每帧检测鼠标是否悬停在手柄上，通过 CursorComponent 声明光标需求 */
+    /** 每帧检测鼠标是否悬停在手柄或旋转区域上，通过 CursorComponent 声明光标需求 */
     private updateHoverCursor(): void {
         if (!this.selectionRenderSystem || !this.pointerComponent || !this.viewportComponent) {
             this.hoveredHandle = null;
@@ -439,6 +682,7 @@ export class ResizeSystem extends System {
         const px = this.pointerComponent.x;
         const py = this.pointerComponent.y;
 
+        // 先检测 resize 手柄
         let foundHandle: string | null = null;
         let foundCursor: string | null = null;
 
@@ -454,6 +698,21 @@ export class ResizeSystem extends System {
 
         if (foundCursor && this.cursorComponent) {
             this.cursorComponent.setCursor(foundCursor, CursorPriority.HOVER_HANDLE);
+            return;
+        }
+
+        // 未命中 resize 手柄，检测角手柄外侧旋转区域（仅单选）
+        const selected = this.selectionState?.getSelectedArray();
+        if (selected && selected.length === 1) {
+            const outerTolerance = ROTATE_OUTER_TOLERANCE / scale;
+            for (const handle of handles) {
+                if (!CORNER_TYPES.has(handle.type)) continue;
+                const dist = Math.max(Math.abs(px - handle.x), Math.abs(py - handle.y));
+                if (dist >= tolerance && dist < outerTolerance) {
+                    this.cursorComponent?.setCursor(ROTATE_CURSOR_SVG, CursorPriority.HOVER_HANDLE);
+                    return;
+                }
+            }
         }
     }
 

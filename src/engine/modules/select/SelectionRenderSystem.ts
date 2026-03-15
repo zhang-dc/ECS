@@ -101,83 +101,113 @@ export class SelectionRenderSystem extends System {
             }
         });
 
-        // 为每个选中实体绘制边框
-        validAABBs.forEach(aabb => {
-            // 蓝色边框
-            g.lineStyle(lineWidth, SELECTION_COLOR, 1);
-            g.drawRect(aabb.x, aabb.y, aabb.width, aabb.height);
-        });
-
-        // 计算手柄所用的包围盒
-        // 单选：用该实体的 AABB；多选：用所有选中实体的组合 AABB
-        // 使用缓存的 AABB 避免重复计算
-        let boundsX = 0, boundsY = 0, boundsW = 0, boundsH = 0;
-        let hasBounds = false;
-
+        // 单选旋转元素：绘制旋转矩形 + 旋转手柄
         if (selected.length === 1) {
-            const cachedAABB = aabbCache.get(selected[0]);
-            if (cachedAABB && (cachedAABB.width > 0 || cachedAABB.height > 0)) {
-                boundsX = cachedAABB.x;
-                boundsY = cachedAABB.y;
-                boundsW = cachedAABB.width;
-                boundsH = cachedAABB.height;
-                hasBounds = true;
+            const entity = selected[0];
+            const layoutComp = entity.getComponent(LayoutComponent);
+            if (!layoutComp || (layoutComp.width <= 0 && layoutComp.height <= 0)) return;
+
+            // 计算世界坐标原点
+            let wx = layoutComp.x;
+            let wy = layoutComp.y;
+            let parent = entity.parent;
+            while (parent) {
+                const pl = parent.getComponent(LayoutComponent);
+                if (pl) { wx += pl.x; wy += pl.y; }
+                parent = parent.parent;
             }
-        } else if (selected.length > 1) {
-            // 多选：计算组合包围盒（使用缓存的 AABB）
-            let minX = Infinity, minY = Infinity;
-            let maxX = -Infinity, maxY = -Infinity;
 
-            validAABBs.forEach(aabb => {
-                minX = Math.min(minX, aabb.x);
-                minY = Math.min(minY, aabb.y);
-                maxX = Math.max(maxX, aabb.x + aabb.width);
-                maxY = Math.max(maxY, aabb.y + aabb.height);
-            });
+            const w = layoutComp.width;
+            const h = layoutComp.height;
+            const rot = layoutComp.rotation;
+            const cos = Math.cos(rot);
+            const sin = Math.sin(rot);
 
-            if (minX < Infinity) {
-                boundsX = minX;
-                boundsY = minY;
-                boundsW = maxX - minX;
-                boundsH = maxY - minY;
-                hasBounds = true;
+            // 旋转一个局部偏移到世界坐标
+            const rx = (lx: number, ly: number) => wx + lx * cos - ly * sin;
+            const ry = (lx: number, ly: number) => wy + lx * sin + ly * cos;
 
-                // 多选时绘制整体包围框（虚线效果用较低透明度）
-                g.lineStyle(lineWidth, SELECTION_COLOR, 0.4);
-                g.drawRect(boundsX, boundsY, boundsW, boundsH);
-            }
-        }
+            // 4 个角的世界坐标
+            const tlX = rx(0, 0), tlY = ry(0, 0);
+            const trX = rx(w, 0), trY = ry(w, 0);
+            const brX = rx(w, h), brY = ry(w, h);
+            const blX = rx(0, h), blY = ry(0, h);
 
-        // 绘制 resize 手柄
-        if (hasBounds && (boundsW > 0 || boundsH > 0)) {
+            // 绘制旋转选中框
+            g.lineStyle(lineWidth, SELECTION_COLOR, 1);
+            g.moveTo(tlX, tlY);
+            g.lineTo(trX, trY);
+            g.lineTo(brX, brY);
+            g.lineTo(blX, blY);
+            g.closePath();
+
+            // 8 个手柄位置（旋转后的角 + 边中点）
             const halfHandle = handleWorldSize / 2;
-
             const handlePositions: HandleInfo[] = [
-                { x: boundsX, y: boundsY, cursor: 'nwse-resize', type: 'tl' },
-                { x: boundsX + boundsW / 2, y: boundsY, cursor: 'ns-resize', type: 't' },
-                { x: boundsX + boundsW, y: boundsY, cursor: 'nesw-resize', type: 'tr' },
-                { x: boundsX + boundsW, y: boundsY + boundsH / 2, cursor: 'ew-resize', type: 'r' },
-                { x: boundsX + boundsW, y: boundsY + boundsH, cursor: 'nwse-resize', type: 'br' },
-                { x: boundsX + boundsW / 2, y: boundsY + boundsH, cursor: 'ns-resize', type: 'b' },
-                { x: boundsX, y: boundsY + boundsH, cursor: 'nesw-resize', type: 'bl' },
-                { x: boundsX, y: boundsY + boundsH / 2, cursor: 'ew-resize', type: 'l' },
+                { x: tlX, y: tlY, cursor: 'nwse-resize', type: 'tl' },
+                { x: (tlX + trX) / 2, y: (tlY + trY) / 2, cursor: 'ns-resize', type: 't' },
+                { x: trX, y: trY, cursor: 'nesw-resize', type: 'tr' },
+                { x: (trX + brX) / 2, y: (trY + brY) / 2, cursor: 'ew-resize', type: 'r' },
+                { x: brX, y: brY, cursor: 'nwse-resize', type: 'br' },
+                { x: (brX + blX) / 2, y: (brY + blY) / 2, cursor: 'ns-resize', type: 'b' },
+                { x: blX, y: blY, cursor: 'nesw-resize', type: 'bl' },
+                { x: (blX + tlX) / 2, y: (blY + tlY) / 2, cursor: 'ew-resize', type: 'l' },
             ];
 
             handlePositions.forEach(handle => {
-                // 白色填充 + 蓝色边框的方块
                 g.lineStyle(lineWidth, SELECTION_COLOR, 1);
                 g.beginFill(0xFFFFFF, 1);
-                g.drawRect(
-                    handle.x - halfHandle,
-                    handle.y - halfHandle,
-                    handleWorldSize,
-                    handleWorldSize,
-                );
+                if (rot === 0) {
+                    g.drawRect(handle.x - halfHandle, handle.y - halfHandle, handleWorldSize, handleWorldSize);
+                } else {
+                    // 绘制旋转的手柄方块
+                    const hCos = cos * halfHandle;
+                    const hSin = sin * halfHandle;
+                    // 手柄中心到四角的偏移（旋转后）
+                    const dxA = hCos - (-hSin); // (+halfHandle, -halfHandle) rotated
+                    const dyA = hSin + (-hCos);
+                    const dxB = hCos - hSin;    // (+halfHandle, +halfHandle) rotated
+                    const dyB = hSin + hCos;
+                    g.moveTo(handle.x + dxA, handle.y + dyA);  // top-right of handle
+                    g.lineTo(handle.x + dxB, handle.y + dyB);  // bottom-right
+                    g.lineTo(handle.x - dxA, handle.y - dyA);  // bottom-left
+                    g.lineTo(handle.x - dxB, handle.y - dyB);  // top-left
+                    g.closePath();
+                }
                 g.endFill();
             });
 
             this.handles = handlePositions;
+            return;
         }
+
+        // 多选：每个元素绘制旋转描边框，无手柄
+        selected.forEach(entity => {
+            const lc = entity.getComponent(LayoutComponent);
+            if (!lc || (lc.width <= 0 && lc.height <= 0)) return;
+
+            let ewx = lc.x, ewy = lc.y;
+            let ep = entity.parent;
+            while (ep) {
+                const pl = ep.getComponent(LayoutComponent);
+                if (pl) { ewx += pl.x; ewy += pl.y; }
+                ep = ep.parent;
+            }
+
+            g.lineStyle(lineWidth, SELECTION_COLOR, 1);
+            if (lc.rotation === 0) {
+                g.drawRect(ewx, ewy, lc.width, lc.height);
+            } else {
+                const ec = Math.cos(lc.rotation), es = Math.sin(lc.rotation);
+                const erx = (lx: number, ly: number) => ewx + lx * ec - ly * es;
+                const ery = (lx: number, ly: number) => ewy + lx * es + ly * ec;
+                g.moveTo(erx(0, 0), ery(0, 0));
+                g.lineTo(erx(lc.width, 0), ery(lc.width, 0));
+                g.lineTo(erx(lc.width, lc.height), ery(lc.width, lc.height));
+                g.lineTo(erx(0, lc.height), ery(0, lc.height));
+                g.closePath();
+            }
+        });
     }
 
     private drawMarquee(): void {
