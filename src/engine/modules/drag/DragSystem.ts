@@ -13,6 +13,7 @@ import { LayoutEvent } from '../layout/LayoutEvent';
 import { PointerComponent } from '../pointer/PointerComponent';
 import { SelectionState } from '../select/SelectionState';
 import { ToolComponent } from '../tool/ToolComponent';
+import { CursorComponent, CursorPriority } from '../cursor/CursorComponent';
 import { DragComponent } from './DragComponent';
 import { DragEvent, DragStatus } from './DragEvent';
 
@@ -25,6 +26,7 @@ export class DragSystem extends System {
     toolComponent?: ToolComponent;
     guideComponent?: GuideComponent;
     keyboardComponent?: KeyboardComponent;
+    cursorComponent?: CursorComponent;
 
     /** 拖拽开始时每个实体的位置快照 */
     private dragStartPositions: Map<Entity, { x: number; y: number }> = new Map();
@@ -50,6 +52,7 @@ export class DragSystem extends System {
         this.toolComponent = this.world.findComponent(ToolComponent);
         this.guideComponent = this.world.findComponent(GuideComponent);
         this.keyboardComponent = this.world.findComponent(KeyboardComponent);
+        this.cursorComponent = this.world.findComponent(CursorComponent);
 
         // 初始化 ElementFactory
         const renderStage = ElementFactory.getRenderStageFromWorld(this.world);
@@ -74,6 +77,11 @@ export class DragSystem extends System {
             return;
         }
 
+        // 拖拽中设置 move 光标
+        if (this.dragEntities.length > 0 && this.cursorComponent) {
+            this.cursorComponent.setCursor('move', CursorPriority.ACTIVE_OPERATION);
+        }
+
         const pointerEvents = this.eventManager?.getEvents(InteractEvent);
 
         pointerEvents?.forEach(event => {
@@ -91,6 +99,9 @@ export class DragSystem extends System {
     }
 
     handleDragStart(entity: Entity): void {
+        // 空格临时平移期间不启动拖拽
+        if (this.world.isSpacePanning) return;
+
         // 检查实体是否有 DragComponent 且允许拖拽
         const dragComp = entity.getComponent(DragComponent);
         if (!dragComp?.draggable) {

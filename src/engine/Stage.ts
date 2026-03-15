@@ -45,6 +45,8 @@ export class Stage {
     isDragging: boolean = false;
     /** 全局标志：是否正在文本编辑中（用于阻止 SelectSystem/DragSystem 干扰） */
     isTextEditing: boolean = false;
+    /** 全局标志：是否正在空格临时平移中（用于阻止 DragSystem 干扰） */
+    isSpacePanning: boolean = false;
 
     /**
      * 通用事件总线 — 用于 ECS 系统与外部（React UI）之间的跨层通信

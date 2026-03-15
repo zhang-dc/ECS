@@ -17,6 +17,7 @@ import { KeyboardComponent } from '../keyboard/KeyboardComponent';
 import { KeyboardKey } from '../keyboard/Keyboard';
 import { SelectionState } from '../select/SelectionState';
 import { SelectEvent, SelectOperation } from '../select/SelectEvent';
+import { CursorComponent, CursorPriority } from '../cursor/CursorComponent';
 import { MindMapNodeComponent } from '../mindmap/MindMapNodeComponent';
 import { Graphics, DisplayObject } from 'pixi.js';
 
@@ -42,9 +43,18 @@ export class ToolSystem extends System {
     toolComponent!: ToolComponent;
     elementFactory?: ElementFactory;
     mindMapFactory?: MindMapFactory;
+    private cursorComponent?: CursorComponent;
     private renderConfig?: RenderConfig;
     private previewGraphics: Graphics = new Graphics();
     private previewAdded = false;
+    /** 平移拖拽起始屏幕坐标 */
+    private panStartScreenX = 0;
+    private panStartScreenY = 0;
+    /** 平移拖拽起始视口偏移 */
+    private panStartOffsetX = 0;
+    private panStartOffsetY = 0;
+    /** 是否正在平移拖拽中（已按下鼠标） */
+    private isPanDragging = false;
 
     constructor(props: SystemProps) {
         super(props);
@@ -60,6 +70,7 @@ export class ToolSystem extends System {
         this.pointerComponent = this.world.findComponent(PointerComponent);
         this.keyboardComponent = this.world.findComponent(KeyboardComponent);
         this.selectionState = this.world.findComponent(SelectionState);
+        this.cursorComponent = this.world.findComponent(CursorComponent);
         this.renderConfig = this.world.findComponent(RenderConfig);
         const viewportEntity = this.world.findEntityByName(DefaultEntityName.Viewport);
         this.viewportComponent = viewportEntity?.getComponent(ViewportComponent);
@@ -90,6 +101,10 @@ export class ToolSystem extends System {
 
         // 处理键盘快捷键
         this.handleKeyboardShortcuts();
+
+        // 空格临时平移
+        this.handleSpacePan();
+        if (this.world.isSpacePanning) return;
 
         const mode = this.toolComponent.mode;
 
@@ -303,21 +318,82 @@ export class ToolSystem extends System {
         }
     }
 
+    // ==================== 空格临时平移 ====================
+
+    /**
+     * 按住空格键临时激活手型模式，释放后恢复原工具
+     * 不修改 toolComponent.mode，不触发 TOOL_CHANGE 事件
+     */
+    private handleSpacePan(): void {
+        if (!this.keyboardComponent || !this.pointerComponent) return;
+
+        const spaceDown = this.keyboardComponent.isKeyDown(KeyboardKey.Space);
+
+        // 文本编辑中、绘制中、已经是 Hand 工具时不处理
+        if (this.world.isTextEditing) return;
+        if (this.toolComponent.isDrawing) return;
+        if (this.toolComponent.mode === 'hand') return;
+
+        if (spaceDown && !this.world.isSpacePanning) {
+            this.world.isSpacePanning = true;
+            this.isPanDragging = false;
+        }
+
+        if (this.world.isSpacePanning) {
+            if (!spaceDown) {
+                this.world.isSpacePanning = false;
+                this.isPanDragging = false;
+                return;
+            }
+
+            // 设置光标
+            if (this.isPanDragging) {
+                this.cursorComponent?.setCursor('grabbing', CursorPriority.ACTIVE_OPERATION);
+            } else {
+                this.cursorComponent?.setCursor('grab', CursorPriority.ACTIVE_OPERATION);
+            }
+
+            this.handlePanDrag();
+        }
+    }
+
     // ==================== 工具模式处理 ====================
 
     /** 手型工具 — 拖拽平移视口 */
     private handleHandMode(): void {
-        const pointer = this.pointerComponent!;
+        this.handlePanDrag();
+    }
 
-        if (pointer.isButtonDown(PointerButtons.PRIMARY) && pointer.isMoving) {
-            const event = new ViewportEvent({
-                data: {
-                    operation: ViewportOperation.Pan,
-                    deltaScreenX: pointer.deltaX,
-                    deltaScreenY: pointer.deltaY,
-                },
-            });
-            this.eventManager?.sendEvent(event);
+    /**
+     * 通用平移拖拽逻辑（Hand 工具和空格临时平移共用）
+     * 按下时记录起始屏幕坐标和视口偏移，拖拽时用屏幕坐标差值 / scale 直接设置视口偏移
+     */
+    private handlePanDrag(): void {
+        const pointer = this.pointerComponent!;
+        const vp = this.viewportComponent;
+        if (!vp) return;
+
+        // 开始拖拽：记录起始屏幕坐标和视口偏移
+        if (pointer.hasButtonDown(PointerButtons.PRIMARY) && !this.isPanDragging) {
+            this.isPanDragging = true;
+            this.panStartScreenX = pointer.screenX;
+            this.panStartScreenY = pointer.screenY;
+            this.panStartOffsetX = vp.offsetX;
+            this.panStartOffsetY = vp.offsetY;
+        }
+
+        // 拖拽中：根据屏幕坐标差值计算新的视口偏移
+        if (this.isPanDragging && pointer.isButtonDown(PointerButtons.PRIMARY)) {
+            const dx = pointer.screenX - this.panStartScreenX;
+            const dy = pointer.screenY - this.panStartScreenY;
+            vp.offsetX = this.panStartOffsetX - dx / vp.scale;
+            vp.offsetY = this.panStartOffsetY - dy / vp.scale;
+            vp.dirty = true;
+        }
+
+        // 结束拖拽
+        if (this.isPanDragging && pointer.hasPointerUp) {
+            this.isPanDragging = false;
         }
     }
 

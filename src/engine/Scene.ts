@@ -22,6 +22,7 @@ import { TextEditSystem } from './modules/text/TextEditSystem';
 import { MindMapCommandSystem } from './modules/mindmap/MindMapCommandSystem';
 import { MindMapLayoutSystem } from './modules/mindmap/MindMapLayoutSystem';
 import { MindMapConnectionSystem } from './modules/mindmap/MindMapConnectionSystem';
+import { CursorSystem } from './modules/cursor/CursorSystem';
 import { ToolSystem } from './modules/tool/ToolSystem';
 import { ViewportSystem } from './modules/viewport/ViewportSystem';
 import { Stage } from './Stage';
@@ -177,6 +178,11 @@ export function initTaskSystemList(props: InitTaskSystemListProps) {
         {
             system: new ViewportSystem({ world, canvas, mask }),
             systemIndex: DefaultSystemIndex.ViewportSystem,
+        },
+        // 光标系统：在所有系统之后运行，统一决策光标样式
+        {
+            system: new CursorSystem({ world, mask }),
+            systemIndex: DefaultSystemIndex.CursorSystem,
         }
     ];
 

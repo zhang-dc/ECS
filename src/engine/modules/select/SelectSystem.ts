@@ -11,6 +11,7 @@ import { PointerButtons } from '../pointer/Pointer';
 import { PointerComponent } from '../pointer/PointerComponent';
 import { ToolComponent } from '../tool/ToolComponent';
 import { ViewportComponent } from '../viewport/ViewportComponent';
+import { CursorComponent, CursorPriority } from '../cursor/CursorComponent';
 import { SelectComponent } from './SelectComponent';
 import { SelectEvent, SelectOperation } from './SelectEvent';
 import { SelectionState } from './SelectionState';
@@ -22,6 +23,7 @@ export class SelectSystem extends System {
     viewportComponent?: ViewportComponent;
     toolComponent?: ToolComponent;
     keyboardComponent?: KeyboardComponent;
+    cursorComponent?: CursorComponent;
     selectionState!: SelectionState;
 
     constructor(props: SystemProps) {
@@ -35,6 +37,7 @@ export class SelectSystem extends System {
         this.pointerComponent = this.world.findComponent(PointerComponent);
         this.toolComponent = this.world.findComponent(ToolComponent);
         this.keyboardComponent = this.world.findComponent(KeyboardComponent);
+        this.cursorComponent = this.world.findComponent(CursorComponent);
         const viewportEntity = this.world.findEntityByName(DefaultEntityName.Viewport);
         this.viewportComponent = viewportEntity?.getComponent(ViewportComponent);
     }
@@ -61,11 +64,23 @@ export class SelectSystem extends System {
             return;
         }
 
+        // 空格临时平移期间跳过选择/框选处理
+        // 同时检查 keyMap（因为 KeyboardSystem 先于 SelectSystem 运行，但 ToolSystem 后于 SelectSystem）
+        if (this.world.isSpacePanning ||
+            this.keyboardComponent?.isKeyDown(KeyboardKey.Space)) {
+            return;
+        }
+
         // 处理指针交互产生的选择
         this.handlePointerSelection();
 
         // 处理框选
         this.handleMarqueeSelection();
+
+        // 框选中设置 crosshair 光标
+        if (this.selectionState.isMarqueeSelecting && this.cursorComponent) {
+            this.cursorComponent.setCursor('crosshair', CursorPriority.ACTIVE_OPERATION);
+        }
     }
 
     processSelectEvent(event: SelectEvent) {

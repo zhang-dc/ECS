@@ -15,6 +15,7 @@ import { TextRenderer } from '../render/TextRenderer';
 import { ViewportComponent } from '../viewport/ViewportComponent';
 import { MindMapNodeComponent } from '../mindmap/MindMapNodeComponent';
 import { MindMapEvent, MindMapEventType } from '../mindmap/MindMapEvent';
+import { CursorComponent, CursorPriority } from '../cursor/CursorComponent';
 import { RichTextComponent } from './RichTextComponent';
 import { TextDataInterface } from '../../rich-text/interfaces/text-data';
 import { Selection } from '../../rich-text/interfaces/selection';
@@ -70,6 +71,8 @@ export class TextEditSystem extends System {
     private redoStack: TextEditSnapshot[] = [];
     private readonly MAX_UNDO_STEPS = 100;
 
+    private cursorComponent?: CursorComponent;
+
     // ===== 自行双击检测状态 =====
     /** 上次点击的实体 */
     private lastClickEntity: Entity | null = null;
@@ -84,6 +87,7 @@ export class TextEditSystem extends System {
     start(): void {
         this.eventManager = this.world.findComponent(EventManager);
         this.pointerComponent = this.world.findComponent(PointerComponent);
+        this.cursorComponent = this.world.findComponent(CursorComponent);
         const viewportEntity = this.world.findEntityByName(DefaultEntityName.Viewport);
         this.viewportComponent = viewportEntity?.getComponent(ViewportComponent);
 
@@ -106,6 +110,11 @@ export class TextEditSystem extends System {
                 }
                 this.startEditingAny(entity);
             }
+        }
+
+        // 文本编辑中设置 text 光标
+        if (this.world.isTextEditing && this.cursorComponent) {
+            this.cursorComponent.setCursor('text', CursorPriority.ACTIVE_OPERATION);
         }
 
         // 根据当前状态分派处理

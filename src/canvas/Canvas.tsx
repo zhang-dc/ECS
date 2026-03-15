@@ -6,8 +6,7 @@ import { ECSBridge } from '../engine/bridge/ECSBridge';
 import { useECSState, useECSActions } from '../engine/bridge/useECS';
 import Toolbar from '../ui/Toolbar';
 import ToolPanel from '../ui/ToolPanel';
-import PropertyPanel from '../ui/PropertyPanel';
-import MindMapPanel from '../ui/MindMapPanel';
+import RightPanel from '../ui/RightPanel';
 
 /** 预加载图片获取原始宽高 */
 function loadImageSize(src: string): Promise<{ width: number; height: number }> {
@@ -247,7 +246,7 @@ function Canvas() {
                         onToolChange={actions.setCurrentTool}
                         onImageUpload={insertImageAtCenter}
                     />
-                    <PropertyPanel
+                    <RightPanel
                         ecsState={ecsState}
                         actions={{
                             bringToFront: actions.bringToFront,
@@ -269,11 +268,6 @@ function Canvas() {
                             updateMultipleEntityStyle: actions.updateMultipleEntityStyle,
                             replaceImage: actions.replaceImage,
                             updateImageOpacity: actions.updateImageOpacity,
-                        }}
-                    />
-                    <MindMapPanel
-                        ecsState={ecsState}
-                        actions={{
                             addMindMapChild: actions.addMindMapChild,
                             addMindMapSibling: actions.addMindMapSibling,
                             deleteMindMapNode: actions.deleteMindMapNode,

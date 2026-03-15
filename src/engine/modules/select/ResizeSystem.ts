@@ -13,6 +13,7 @@ import { ShapeRenderer } from '../render/ShapeRenderer';
 import { ToolComponent } from '../tool/ToolComponent';
 import { ViewportComponent } from '../viewport/ViewportComponent';
 import { DefaultEntityName } from '../../interface/Entity';
+import { CursorComponent, CursorPriority } from '../cursor/CursorComponent';
 import { SelectionState } from './SelectionState';
 import { SelectionRenderSystem } from './SelectionRenderSystem';
 
@@ -86,6 +87,7 @@ export class ResizeSystem extends System {
     private selectionState?: SelectionState;
     private toolComponent?: ToolComponent;
     private selectionRenderSystem?: SelectionRenderSystem;
+    private cursorComponent?: CursorComponent;
     private mask?: HTMLDivElement;
 
     /** 当前正在拖拽的手柄类型 */
@@ -116,6 +118,7 @@ export class ResizeSystem extends System {
         this.selectionState = this.world.findComponent(SelectionState);
         this.toolComponent = this.world.findComponent(ToolComponent);
         this.keyboardComponent = this.world.findComponent(KeyboardComponent);
+        this.cursorComponent = this.world.findComponent(CursorComponent);
         const viewportEntity = this.world.findEntityByName(DefaultEntityName.Viewport);
         this.viewportComponent = viewportEntity?.getComponent(ViewportComponent);
     }
@@ -135,6 +138,13 @@ export class ResizeSystem extends System {
 
         // 处理 resize 拖拽中
         if (this.isResizing) {
+            // 锁定光标为当前手柄方向
+            if (this.activeHandle && this.cursorComponent && this.selectionRenderSystem) {
+                const handle = this.selectionRenderSystem.handles.find(h => h.type === this.activeHandle);
+                if (handle) {
+                    this.cursorComponent.setCursor(handle.cursor, CursorPriority.ACTIVE_OPERATION);
+                }
+            }
             this.handleResizing();
             if (this.pointerComponent.hasPointerUp) {
                 this.handleResizeEnd();
@@ -411,16 +421,16 @@ export class ResizeSystem extends System {
 
     // ==================== 光标跟随 ====================
 
-    /** 每帧检测鼠标是否悬停在手柄上，更新光标 */
+    /** 每帧检测鼠标是否悬停在手柄上，通过 CursorComponent 声明光标需求 */
     private updateHoverCursor(): void {
         if (!this.selectionRenderSystem || !this.pointerComponent || !this.viewportComponent) {
-            this.resetCursor();
+            this.hoveredHandle = null;
             return;
         }
 
         const handles = this.selectionRenderSystem.handles;
         if (handles.length === 0) {
-            this.resetCursor();
+            this.hoveredHandle = null;
             return;
         }
 
@@ -440,20 +450,14 @@ export class ResizeSystem extends System {
             }
         }
 
-        if (foundHandle !== this.hoveredHandle) {
-            this.hoveredHandle = foundHandle;
-            if (this.mask) {
-                this.mask.style.cursor = foundCursor ?? '';
-            }
+        this.hoveredHandle = foundHandle;
+
+        if (foundCursor && this.cursorComponent) {
+            this.cursorComponent.setCursor(foundCursor, CursorPriority.HOVER_HANDLE);
         }
     }
 
     private resetCursor(): void {
-        if (this.hoveredHandle !== null) {
-            this.hoveredHandle = null;
-            if (this.mask) {
-                this.mask.style.cursor = '';
-            }
-        }
+        this.hoveredHandle = null;
     }
 }
