@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npx webpack:*)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(git rebase:*)",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(chmod:*)",
+      "Bash(bash /Users/meric/Documents/GitHub/ECS/scripts/sync-push.sh)",
+      "Bash(bash scripts/sync-push.sh)"
+    ]
+  }
+}
