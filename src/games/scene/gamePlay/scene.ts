@@ -8,6 +8,8 @@ import { SceneType } from '../../../engine/interface/Task';
 import { SystemIndex } from '../../interface/Task';
 import { EntityName } from '../../interface/Entity';
 import { HitTestName } from '../../../engine/modules/hitTest/HitTest';
+import { initGameStateEntity } from '../../entity/GameStateEntity';
+import { ResourceType } from '../../data/ResourceTypes';
 
 // 游戏系统
 import { GameManagerSystem } from '../../system/game/GameManagerSystem';
@@ -37,6 +39,9 @@ export interface InitGamePlaySceneProps {
 export function initGamePlayScene(props: InitGamePlaySceneProps) {
     const { world, canvas, mask, difficulty = 'normal' } = props;
 
+    // 创建游戏状态实体，将核心组件注册到 ECS
+    initGameStateEntity({ world });
+
     // 创建所有游戏系统
     const gameManagerSystem = new GameManagerSystem({ world, difficulty });
     const timeSystem = new TimeSystem({ world });
@@ -48,6 +53,59 @@ export function initGamePlayScene(props: InitGamePlaySceneProps) {
     const policySystem = new PolicySystem({ world });
     const eventSystem = new EventSystem({ world });
     const endingSystem = new EndingSystem({ world });
+
+    // 注册系统间通信：时间系统驱动其他系统的每日/每月/每年更新
+    timeSystem.onDayChange(() => {
+        // 通知 GameManager 更新时间
+        gameManagerSystem.updateTime(
+            timeSystem.getYear(),
+            timeSystem.getMonth(),
+            timeSystem.getDay()
+        );
+        // 每日更新各系统
+        indicatorSystem.dailyUpdate();
+        populationSystem.dailyUpdate();
+        missionSystem.dailyUpdate();
+        // 更新建筑建造进度
+        buildingSystem.dailyUpdate();
+        // 每日资源消耗（人口吃饭）
+        const stats = populationSystem.getStatistics();
+        resourceSystem.consumeFood(stats.total);
+        // 通知 UI 更新
+        world.emit('game:dayChange');
+    });
+
+    timeSystem.onMonthChange(() => {
+        // 每月检查随机事件
+        const stats = populationSystem.getStatistics();
+        const money = resourceSystem.getAmount(ResourceType.Money);
+        eventSystem.checkEventTrigger(
+            timeSystem.getYear(),
+            timeSystem.getMonth(),
+            stats.total,
+            money
+        );
+        // 每月检查结局
+        const indicators = indicatorSystem.getIndicators();
+        const buildings = buildingSystem.getAllBuildings().map(b => b.type);
+        endingSystem.checkEnding(
+            timeSystem.getYear(),
+            indicators.satisfaction,
+            indicators.hope,
+            stats.total,
+            indicators.money,
+            buildings,
+            []
+        );
+        // 通知 UI 更新
+        world.emit('game:monthChange');
+    });
+
+    timeSystem.onYearChange(() => {
+        // 每年检查任务解锁
+        missionSystem.checkMissionUnlocks(timeSystem.getYear());
+        world.emit('game:yearChange');
+    });
 
     // 游戏核心系统列表
     const systemList = initTaskSystemList({
@@ -81,6 +139,9 @@ export function initGamePlayScene(props: InitGamePlaySceneProps) {
         systemList,
         name: 'gamePlay',
     });
+
+    // 启动游戏循环
+    taskFlow.run();
 
     // 打印系统启动摘要
     console.log('%c[Scene] 游戏主场景初始化完成', 'color: #4caf50; font-weight: bold;');

@@ -2,8 +2,9 @@
  * 游戏入口组件
  * 用于启动山海情模拟经营游戏
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Stage } from './engine/Stage';
+import { TaskFlow } from './engine/flow/TaskFlow';
 import { initGamePlayScene } from './games/scene/gamePlay/scene';
 import { GameHUD } from './games/ui/GameHUD';
 import './Game.css';
@@ -12,40 +13,48 @@ export const Game: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const maskRef = useRef<HTMLDivElement>(null);
     const worldRef = useRef<Stage | null>(null);
-    const [isRunning, setIsRunning] = useState(false);
+    const taskFlowRef = useRef<TaskFlow | null>(null);
     const [gameStarted, setGameStarted] = useState(false);
 
-    const startGame = () => {
+    const startGame = useCallback(() => {
         if (!canvasRef.current || !maskRef.current || worldRef.current) return;
 
         // 创建Stage
         const world = new Stage();
         worldRef.current = world;
 
-        // 初始化游戏场景
-        initGamePlayScene({
+        // 初始化游戏场景（内部会调用 taskFlow.run()）
+        const taskFlow = initGamePlayScene({
             world,
             canvas: canvasRef.current,
             mask: maskRef.current,
             difficulty: 'normal',
         });
+        taskFlowRef.current = taskFlow;
 
-        setIsRunning(true);
         setGameStarted(true);
         console.log('[Game] 游戏已启动');
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-            // 暂停游戏
-            console.log('[Game] 暂停/继续');
-        }
-    };
+    }, []);
 
     useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && taskFlowRef.current) {
+                const tf = taskFlowRef.current;
+                if (tf.isRunning) {
+                    tf.stop();
+                    console.log('[Game] 游戏已暂停');
+                } else {
+                    tf.run();
+                    console.log('[Game] 游戏已恢复');
+                }
+            }
+        };
+
         window.addEventListener('keydown', handleKeyDown);
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
+            // 组件卸载时停止游戏循环
+            taskFlowRef.current?.stop();
         };
     }, []);
 

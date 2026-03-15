@@ -22,7 +22,26 @@ export class BuildingSystem extends System {
     }
 
     update(): void {
-        // 更新建造进度
+        // 由 game loop 驱动，实际建造进度由 dailyUpdate 推进
+    }
+
+    /**
+     * 每日更新建造进度
+     */
+    dailyUpdate(): void {
+        this.buildings.forEach(building => {
+            if (building.status === BuildingStatus.UnderConstruction) {
+                const config = BuildingConfigs[building.type];
+                if (config) {
+                    const progressPerDay = 100 / config.buildTime;
+                    building.buildProgress = Math.min(100, building.buildProgress + progressPerDay);
+                    if (building.buildProgress >= 100) {
+                        building.activate();
+                        console.log(`[BuildingSystem] 建筑完工: ${config.name}`);
+                    }
+                }
+            }
+        });
     }
 
     construct(type: BuildingType, position: { x: number; y: number }): BuildingComponent | null {

@@ -15,21 +15,35 @@ export const IndicatorPanel: React.FC<IndicatorPanelProps> = ({ world }) => {
     const [indicators, setIndicators] = useState<IndicatorComponent | null>(null);
 
     useEffect(() => {
-        // 获取指标组件
-        const components = world.findComponents(IndicatorComponent);
-        if (components.length > 0) {
-            setIndicators(components[0]);
-        }
-
-        // 监听指标变化
-        const unsubscribe = world.on('indicator:change', () => {
+        const updateIndicators = () => {
             const components = world.findComponents(IndicatorComponent);
             if (components.length > 0) {
-                setIndicators({ ...components[0] } as IndicatorComponent);
+                const src = components[0];
+                // 创建快照触发 React re-render
+                const snapshot = new IndicatorComponent({
+                    satisfaction: src.satisfaction,
+                    hunger: src.hunger,
+                    warmth: src.warmth,
+                    hope: src.hope,
+                    stability: src.stability,
+                    money: src.money,
+                    food: src.food,
+                    population: src.population,
+                    techLevel: src.techLevel,
+                    outsideConnection: src.outsideConnection,
+                    educationLevel: src.educationLevel,
+                });
+                setIndicators(snapshot);
             }
-        });
+        };
 
-        return () => unsubscribe();
+        updateIndicators();
+
+        // 监听每日更新
+        const unsub1 = world.on('game:dayChange', updateIndicators);
+        const unsub2 = world.on('indicator:change', updateIndicators);
+
+        return () => { unsub1(); unsub2(); };
     }, [world]);
 
     const getIndicatorColor = (value: number): string => {

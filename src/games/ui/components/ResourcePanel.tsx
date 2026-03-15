@@ -18,14 +18,15 @@ export const ResourcePanel: React.FC<ResourcePanelProps> = ({ world }) => {
         const updateResources = () => {
             const components = world.findComponents(ResourceComponent);
             if (components.length > 0) {
-                setResources(components[0].getAllResources());
+                setResources({ ...components[0].getAllResources() });
             }
         };
 
         updateResources();
 
-        const unsubscribe = world.on('resource:change', updateResources);
-        return () => unsubscribe();
+        const unsub1 = world.on('resource:change', updateResources);
+        const unsub2 = world.on('game:dayChange', updateResources);
+        return () => { unsub1(); unsub2(); };
     }, [world]);
 
     const displayResources = [

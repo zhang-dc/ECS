@@ -13,7 +13,8 @@
       "Bash(git branch:*)",
       "Bash(chmod:*)",
       "Bash(bash /Users/meric/Documents/GitHub/ECS/scripts/sync-push.sh)",
-      "Bash(bash scripts/sync-push.sh)"
+      "Bash(bash scripts/sync-push.sh)",
+      "Bash(git checkout:*)"
     ]
   }
 }
