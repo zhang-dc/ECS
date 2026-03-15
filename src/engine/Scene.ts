@@ -22,6 +22,7 @@ import { TextEditSystem } from './modules/text/TextEditSystem';
 import { MindMapCommandSystem } from './modules/mindmap/MindMapCommandSystem';
 import { MindMapLayoutSystem } from './modules/mindmap/MindMapLayoutSystem';
 import { MindMapConnectionSystem } from './modules/mindmap/MindMapConnectionSystem';
+import { ContextMenuSystem } from './modules/contextmenu/ContextMenuSystem';
 import { CursorSystem } from './modules/cursor/CursorSystem';
 import { ToolSystem } from './modules/tool/ToolSystem';
 import { ViewportSystem } from './modules/viewport/ViewportSystem';
@@ -134,6 +135,10 @@ export function initTaskSystemList(props: InitTaskSystemListProps) {
         {
             system: new TextEditSystem({ world, mask }),
             systemIndex: DefaultSystemIndex.TextEditSystem,
+        },
+        {
+            system: new ContextMenuSystem({ world }),
+            systemIndex: DefaultSystemIndex.ContextMenuSystem,
         },
     ];
 

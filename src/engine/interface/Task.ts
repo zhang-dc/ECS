@@ -49,6 +49,7 @@ export enum DefaultSystemIndex {
     GuideSystem,
     ToolSystem,
     TextEditSystem,
+    ContextMenuSystem,
     MindMapCommandSystem,
     MindMapLayoutSystem,
     MindMapConnectionSystem,

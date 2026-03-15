@@ -157,6 +157,14 @@ export class ECSBridge {
     }
 
     /**
+     * 订阅 Stage EventBus 事件（供 React 层监听 ECS 系统发出的事件）
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onStageEvent(event: string, callback: (...args: any[]) => void): () => void {
+        return this.world.on(event, callback);
+    }
+
+    /**
      * 订阅状态变化
      */
     subscribe(listener: ECSStateListener): () => void {
@@ -246,20 +254,35 @@ export class ECSBridge {
         this.eventManager?.sendEvent(event);
     }
 
-    /** 选中指定实体 */
+    /** 选中指定实体（立即生效，不走帧事件） */
     selectEntity(entity: Entity) {
-        const event = new SelectEvent({
-            data: { operation: SelectOperation.Select, entities: [entity] },
+        if (!this.selectionState) return;
+        this.selectionState.select(entity);
+        // 同步 SelectComponent 状态
+        const selectComps = this.world.findComponents(SelectComponent);
+        selectComps.forEach(comp => {
+            if (comp.entity) {
+                comp.selected = this.selectionState!.isSelected(comp.entity);
+            }
         });
-        this.eventManager?.sendEvent(event);
+        this.world.emit(StageEvents.SELECTION_CHANGE, {
+            selectedEntities: Array.from(this.selectionState.selectedEntities),
+        });
     }
 
-    /** 取消所有选中 */
+    /** 取消所有选中（立即生效，不走帧事件） */
     deselectAll() {
-        const event = new SelectEvent({
-            data: { operation: SelectOperation.DeselectAll },
+        if (!this.selectionState) return;
+        this.selectionState.clearSelection();
+        const selectComps = this.world.findComponents(SelectComponent);
+        selectComps.forEach(comp => {
+            if (comp.entity) {
+                comp.selected = false;
+            }
         });
-        this.eventManager?.sendEvent(event);
+        this.world.emit(StageEvents.SELECTION_CHANGE, {
+            selectedEntities: [],
+        });
     }
 
     /** 获取指定世界坐标位置的可选择实体（最上层的） */

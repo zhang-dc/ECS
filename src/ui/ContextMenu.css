@@ -33,11 +33,11 @@
     outline: none;
 }
 
-.context-menu-item[data-highlighted] {
+.context-menu-item:hover:not(.disabled) {
     background: #f0f0f0;
 }
 
-.context-menu-item[data-disabled] {
+.context-menu-item.disabled {
     color: #b0b0b0;
     pointer-events: none;
 }

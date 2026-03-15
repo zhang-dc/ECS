@@ -8,6 +8,53 @@
 
 ---
 
+## 架构：ECS 引擎与 React UI 的通信机制
+
+### 通信方向
+
+```
+React UI ──(调用方法)──> ECSBridge ──(操作 ECS 状态)──> Stage/Components
+Stage/Systems ──(Stage EventBus)──> ECSBridge ──(状态订阅)──> React UI
+```
+
+### 1. React → ECS（操作指令）
+
+React 通过 `useECSActions(bridge)` 获取操作方法，直接调用 ECSBridge 的方法：
+
+- **立即生效类**：`selectEntity()`, `deselectAll()` — 直接操作 SelectionState + 同步 SelectComponent + emit SELECTION_CHANGE
+- **帧事件类**：`addRect()`, `zoomTo()` — 通过 EventManager 发送事件，下一帧由对应 System 消费
+
+### 2. ECS → React（状态同步）
+
+两种机制：
+
+#### a) 状态快照订阅（`useSyncExternalStore`）
+- `ECSBridge.getState()` 返回 `ECSState` 快照（选中实体、视口、历史等）
+- Systems 通过 `Stage.emit(StageEvents.SELECTION_CHANGE)` 等事件触发 `bridge.invalidate()`
+- React 通过 `useSyncExternalStore` 自动响应状态变化重渲染
+
+#### b) Stage 事件直接订阅（`bridge.onStageEvent()`）
+- 用于不适合放入状态快照的**一次性事件**（如右键菜单弹出）
+- ECS System 内部 `this.world.emit(StageEvents.CONTEXT_MENU, { screenX, screenY })`
+- React 层 `bridge.onStageEvent('context:menu', handler)` 直接监听
+
+### 3. 通信规范
+
+| 场景 | 方向 | 机制 | 示例 |
+| --- | --- | --- | --- |
+| UI 按钮触发操作 | React → ECS | bridge 方法调用 | `actions.deleteSelected()` |
+| 选中状态变化刷新 UI | ECS → React | 状态快照订阅 | `ecsState.selectedEntities` |
+| 一次性事件通知 | ECS → React | Stage 事件订阅 | `CONTEXT_MENU` 携带坐标 |
+| 需要立即生效的选中 | React → ECS | bridge 直接操作 | `bridge.selectEntity()` |
+
+### 4. System 执行顺序
+
+新增的 System 需要注意插入位置：
+- **交互检测类**（如 ContextMenuSystem）：放在 SelectSystem/DragSystem 之后，确保 HitTestEvent 已产生
+- **渲染辅助类**（如 CursorSystem）：放在所有系统最后，汇总本帧状态后统一输出
+
+---
+
 ## 一、缺失功能需求
 
 ### P0 - 基础交互必备

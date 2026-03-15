@@ -32,10 +32,7 @@ export class PointerSystem extends System {
             world: this.world,
         });
         const { mask } = props;
-        mask.oncontextmenu = (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-        };
+        mask.addEventListener('contextmenu', (e) => e.preventDefault());
         mask.addEventListener(PointerEventNames.PointerDown, this.handlePointerDownEvent);
         mask.addEventListener(PointerEventNames.PointerUp, this.handlePointerUpEvent);
         mask.addEventListener(PointerEventNames.PointerMove, this.handlePointerMoveEvent);

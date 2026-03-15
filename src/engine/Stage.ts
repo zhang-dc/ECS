@@ -24,6 +24,8 @@ export const StageEvents = {
     CLIPBOARD_PASTE: 'clipboard:paste',
     /** 原地复制选中实体 */
     DUPLICATE: 'duplicate',
+    /** 右键菜单请求（由 ContextMenuSystem 发出，携带屏幕坐标） */
+    CONTEXT_MENU: 'context:menu',
 } as const;
 
 export class Stage {
