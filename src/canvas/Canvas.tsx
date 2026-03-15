@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import './Canvas.css';
 import { Stage } from '../engine/Stage';
 import { initCanvasScene } from './scene';
@@ -7,6 +7,7 @@ import { useECSState, useECSActions } from '../engine/bridge/useECS';
 import Toolbar from '../ui/Toolbar';
 import ToolPanel from '../ui/ToolPanel';
 import RightPanel from '../ui/RightPanel';
+import CanvasContextMenu, { ContextMenuSection } from '../ui/ContextMenu';
 
 /** 预加载图片获取原始宽高 */
 function loadImageSize(src: string): Promise<{ width: number; height: number }> {
@@ -213,71 +214,153 @@ function Canvas() {
         return () => mask.removeEventListener('paste', handlePaste);
     }, [readFileAsDataUrl, insertImageAtCenter]);
 
+    // 右键菜单：根据右键位置和选中状态构建菜单
+    const handleContextMenuOpen = useCallback(() => {
+        if (!bridge) return;
+        // 右键时检查指针下方是否有元素，如果有且未选中则选中它
+        const vp = ecsState;
+        const mask = maskRef.current;
+        if (!vp || !mask) return;
+
+        // 获取最近一次 contextmenu 事件的屏幕坐标（存在 mask dataset 中）
+        const sx = parseFloat(mask.dataset.ctxX || '0');
+        const sy = parseFloat(mask.dataset.ctxY || '0');
+        const worldPos = {
+            x: vp.viewportOffsetX + sx / vp.viewportScale,
+            y: vp.viewportOffsetY + sy / vp.viewportScale,
+        };
+        const hitEntity = bridge.getEntityAtPosition(worldPos.x, worldPos.y);
+        if (hitEntity) {
+            const selected = ecsState?.selectedEntities ?? [];
+            const isAlreadySelected = selected.some(e => e.id === hitEntity.id);
+            if (!isAlreadySelected) {
+                actions.selectEntity?.(hitEntity);
+            }
+        }
+    }, [bridge, ecsState, actions]);
+
+    // 在 mask 上记录 contextmenu 坐标（供 handleContextMenuOpen 读取）
+    useEffect(() => {
+        const mask = maskRef.current;
+        if (!mask) return;
+        const handler = (e: MouseEvent) => {
+            mask.dataset.ctxX = String(e.offsetX);
+            mask.dataset.ctxY = String(e.offsetY);
+        };
+        mask.addEventListener('contextmenu', handler, true);
+        return () => mask.removeEventListener('contextmenu', handler, true);
+    }, []);
+
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modKey = isMac ? '\u2318' : 'Ctrl+';
+
+    const contextMenuSections = useMemo((): ContextMenuSection[] => {
+        const selectedCount = ecsState?.selectedEntities?.length ?? 0;
+
+        if (selectedCount === 0) {
+            // 画布菜单
+            return [
+                {
+                    items: [
+                        { label: '粘贴', shortcut: `${modKey}V`, onClick: () => actions.pasteClipboard?.() },
+                        { label: '全选', shortcut: `${modKey}A`, onClick: () => actions.selectAll?.() },
+                    ],
+                },
+                {
+                    items: [
+                        { label: '缩放到适合', onClick: () => actions.zoomToFit?.() },
+                        { label: '缩放到 100%', onClick: () => actions.zoomTo?.(1) },
+                    ],
+                },
+            ];
+        }
+
+        // 元素菜单（单选/多选共用）
+        return [
+            {
+                items: [
+                    { label: '复制', shortcut: `${modKey}C`, onClick: () => actions.copySelected?.() },
+                    { label: '粘贴', shortcut: `${modKey}V`, onClick: () => actions.pasteClipboard?.() },
+                    { label: '原地复制', shortcut: `${modKey}D`, onClick: () => actions.duplicateSelected?.() },
+                    { label: '删除', shortcut: 'Del', onClick: () => actions.deleteSelected?.() },
+                ],
+            },
+            {
+                items: [
+                    { label: '置于顶层', onClick: () => actions.bringToFront?.() },
+                    { label: '置于底层', onClick: () => actions.sendToBack?.() },
+                ],
+            },
+        ];
+    }, [ecsState?.selectedEntities?.length, actions, modKey]);
+
     return (
-        <div
-            className={`canvas-container ${isDragOver ? 'drag-over' : ''}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-        >
-            <canvas ref={canvasRef} id='canvas-main'/>
-            <div ref={maskRef} id='canvas-mask' tabIndex={0}></div>
-            {isDragOver && (
-                <div className="canvas-drop-overlay">
-                    <div className="canvas-drop-hint">
-                        <span className="canvas-drop-icon">🖼</span>
-                        <span>释放以插入图片</span>
+        <CanvasContextMenu sections={contextMenuSections} onOpenChange={(open) => { if (open) handleContextMenuOpen(); }}>
+            <div
+                className={`canvas-container ${isDragOver ? 'drag-over' : ''}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+            >
+                <canvas ref={canvasRef} id='canvas-main'/>
+                <div ref={maskRef} id='canvas-mask' tabIndex={0}></div>
+                {isDragOver && (
+                    <div className="canvas-drop-overlay">
+                        <div className="canvas-drop-hint">
+                            <span className="canvas-drop-icon">🖼</span>
+                            <span>释放以插入图片</span>
+                        </div>
                     </div>
-                </div>
-            )}
-            {bridge && (
-                <div className="canvas-ui-overlay">
-                    <Toolbar
-                        ecsState={ecsState}
-                        actions={{
-                            ...actions,
-                            copySelected: actions.copySelected,
-                            pasteClipboard: actions.pasteClipboard,
-                            duplicateSelected: actions.duplicateSelected,
-                        }}
-                    />
-                    <ToolPanel
-                        currentTool={ecsState?.currentTool ?? 'select'}
-                        onToolChange={actions.setCurrentTool}
-                        onImageUpload={insertImageAtCenter}
-                    />
-                    <RightPanel
-                        ecsState={ecsState}
-                        actions={{
-                            bringToFront: actions.bringToFront,
-                            sendToBack: actions.sendToBack,
-                            deleteSelected: actions.deleteSelected,
-                            updateEntityProperty: actions.updateEntityProperty,
-                            updateEntityStyle: actions.updateEntityStyle,
-                            copySelected: actions.copySelected,
-                            pasteClipboard: actions.pasteClipboard,
-                            duplicateSelected: actions.duplicateSelected,
-                            alignLeft: actions.alignLeft,
-                            alignRight: actions.alignRight,
-                            alignTop: actions.alignTop,
-                            alignBottom: actions.alignBottom,
-                            alignCenterH: actions.alignCenterH,
-                            alignCenterV: actions.alignCenterV,
-                            distributeH: actions.distributeH,
-                            distributeV: actions.distributeV,
-                            updateMultipleEntityStyle: actions.updateMultipleEntityStyle,
-                            replaceImage: actions.replaceImage,
-                            updateImageOpacity: actions.updateImageOpacity,
-                            addMindMapChild: actions.addMindMapChild,
-                            addMindMapSibling: actions.addMindMapSibling,
-                            deleteMindMapNode: actions.deleteMindMapNode,
-                            toggleMindMapCollapse: actions.toggleMindMapCollapse,
-                            relayoutMindMap: actions.relayoutMindMap,
-                        }}
-                    />
-                </div>
-            )}
-        </div>
+                )}
+                {bridge && (
+                    <div className="canvas-ui-overlay">
+                        <Toolbar
+                            ecsState={ecsState}
+                            actions={{
+                                ...actions,
+                                copySelected: actions.copySelected,
+                                pasteClipboard: actions.pasteClipboard,
+                                duplicateSelected: actions.duplicateSelected,
+                            }}
+                        />
+                        <ToolPanel
+                            currentTool={ecsState?.currentTool ?? 'select'}
+                            onToolChange={actions.setCurrentTool}
+                            onImageUpload={insertImageAtCenter}
+                        />
+                        <RightPanel
+                            ecsState={ecsState}
+                            actions={{
+                                bringToFront: actions.bringToFront,
+                                sendToBack: actions.sendToBack,
+                                deleteSelected: actions.deleteSelected,
+                                updateEntityProperty: actions.updateEntityProperty,
+                                updateEntityStyle: actions.updateEntityStyle,
+                                copySelected: actions.copySelected,
+                                pasteClipboard: actions.pasteClipboard,
+                                duplicateSelected: actions.duplicateSelected,
+                                alignLeft: actions.alignLeft,
+                                alignRight: actions.alignRight,
+                                alignTop: actions.alignTop,
+                                alignBottom: actions.alignBottom,
+                                alignCenterH: actions.alignCenterH,
+                                alignCenterV: actions.alignCenterV,
+                                distributeH: actions.distributeH,
+                                distributeV: actions.distributeV,
+                                updateMultipleEntityStyle: actions.updateMultipleEntityStyle,
+                                replaceImage: actions.replaceImage,
+                                updateImageOpacity: actions.updateImageOpacity,
+                                addMindMapChild: actions.addMindMapChild,
+                                addMindMapSibling: actions.addMindMapSibling,
+                                deleteMindMapNode: actions.deleteMindMapNode,
+                                toggleMindMapCollapse: actions.toggleMindMapCollapse,
+                                relayoutMindMap: actions.relayoutMindMap,
+                            }}
+                        />
+                    </div>
+                )}
+            </div>
+        </CanvasContextMenu>
     );
 }
 

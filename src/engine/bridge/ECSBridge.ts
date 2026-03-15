@@ -246,12 +246,66 @@ export class ECSBridge {
         this.eventManager?.sendEvent(event);
     }
 
+    /** 选中指定实体 */
+    selectEntity(entity: Entity) {
+        const event = new SelectEvent({
+            data: { operation: SelectOperation.Select, entities: [entity] },
+        });
+        this.eventManager?.sendEvent(event);
+    }
+
     /** 取消所有选中 */
     deselectAll() {
         const event = new SelectEvent({
             data: { operation: SelectOperation.DeselectAll },
         });
         this.eventManager?.sendEvent(event);
+    }
+
+    /** 获取指定世界坐标位置的可选择实体（最上层的） */
+    getEntityAtPosition(worldX: number, worldY: number): Entity | null {
+        const selectComps = this.world.findComponents(SelectComponent);
+        let topEntity: Entity | null = null;
+        let topZIndex = -Infinity;
+
+        for (const comp of selectComps) {
+            if (!comp.selectable || !comp.entity) continue;
+            const layout = comp.entity.getComponent(LayoutComponent);
+            if (!layout) continue;
+
+            // 计算世界坐标
+            let wx = layout.x, wy = layout.y;
+            let p = comp.entity.parent;
+            while (p) {
+                const pl = p.getComponent(LayoutComponent);
+                if (pl) { wx += pl.x; wy += pl.y; }
+                p = p.parent;
+            }
+
+            // 如果有旋转，将点转到元素局部坐标系检测
+            const w = layout.width, h = layout.height;
+            if (layout.rotation !== 0) {
+                const cos = Math.cos(-layout.rotation);
+                const sin = Math.sin(-layout.rotation);
+                const dx = worldX - wx, dy = worldY - wy;
+                const localX = dx * cos - dy * sin;
+                const localY = dx * sin + dy * cos;
+                if (localX >= 0 && localX <= w && localY >= 0 && localY <= h) {
+                    if (layout.zIndex >= topZIndex) {
+                        topZIndex = layout.zIndex;
+                        topEntity = comp.entity;
+                    }
+                }
+            } else {
+                if (worldX >= wx && worldX <= wx + w && worldY >= wy && worldY <= wy + h) {
+                    if (layout.zIndex >= topZIndex) {
+                        topZIndex = layout.zIndex;
+                        topEntity = comp.entity;
+                    }
+                }
+            }
+        }
+        return topEntity;
     }
 
     /** 全选 */

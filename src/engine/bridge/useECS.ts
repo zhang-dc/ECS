@@ -32,6 +32,7 @@ export function useECSActions(bridge: ECSBridge | null) {
         zoomTo: useCallback((scale: number) => bridge?.zoomTo(scale), [bridge]),
         zoomToFit: useCallback(() => bridge?.zoomToFit(), [bridge]),
         selectAll: useCallback(() => bridge?.selectAll(), [bridge]),
+        selectEntity: useCallback((entity: Entity) => bridge?.selectEntity(entity), [bridge]),
         deselectAll: useCallback(() => bridge?.deselectAll(), [bridge]),
         toggleGrid: useCallback(() => bridge?.toggleGrid(), [bridge]),
         toggleSmartGuides: useCallback(() => bridge?.toggleSmartGuides(), [bridge]),
